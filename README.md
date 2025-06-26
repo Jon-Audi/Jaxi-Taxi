@@ -11,57 +11,80 @@ This is a Next.js application that uses AI to analyze music and suggest synchron
 
 ---
 
-## Raspberry Pi Setup Instructions
+## Step-by-Step Guide for Your Raspberry Pi
 
-Follow these steps to get the project running on your Raspberry Pi.
+Absolutely! Here is a personalized guide to get Jaxi Taxi running on your Raspberry Pi at `192.168.4.219`.
 
 ### Prerequisites
 
-*   A Raspberry Pi (3B+ or newer recommended) with Raspberry Pi OS.
-*   Node.js and npm installed. You can install them with:
+Make sure your Raspberry Pi has the following installed:
+
+*   **Git**: `sudo apt-get install git`
+*   **Node.js & npm**: If not installed, run this command:
     ```bash
     curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
     sudo apt-get install -y nodejs
     ```
-*   Python 3 (usually comes pre-installed on Raspberry Pi OS).
+*   **Python 3**: This is usually pre-installed on Raspberry Pi OS.
 
-### 1. Get the Code
+### Step 1: Get the Code on Your Pi
 
-Clone this repository or copy the files onto your Raspberry Pi.
+First, you'll need to get the project files onto your Raspberry Pi. The easiest way is to push it to a GitHub repository and then clone it on the Pi.
 
-### 2. Install Dependencies
+1.  **On your main computer**, push the project to GitHub (if you haven't already).
+2.  **On your Raspberry Pi**, open a terminal and run the following command to clone the repository. Replace `<YOUR_GITHUB_REPO_URL>` with the actual URL.
+    ```bash
+    git clone <YOUR_GITHUB_REPO_URL> jaxi-taxi
+    ```
+3.  Navigate into the new project directory:
+    ```bash
+    cd jaxi-taxi
+    ```
 
-Navigate to the project directory in your terminal and run:
+### Step 2: Install Project Dependencies
+
+Now, install the necessary Node.js packages. This might take a few minutes on a Raspberry Pi.
 
 ```bash
 npm install
 ```
 
-This will install all the necessary Node.js packages.
+### Step 3: Copy Your Music Files
 
-### 3. (Optional) Install GPIO Library for Python
+The app needs your MP3 files to be in the `public/audio/` directory. Since your music is at `/home/jon/media/music`, you can copy them over.
 
-The included Python script `src/scripts/control_leds.py` is a placeholder. To make it control real LEDs, you'll need a Python GPIO library. `RPi.GPIO` is a common choice.
+Run these commands from inside the `jaxi-taxi` project directory on your Pi:
 
 ```bash
-pip install RPi.GPIO
+# Copy your first three songs and rename them for the playlist
+cp /home/jon/media/music/NAME_OF_YOUR_FIRST_SONG.mp3 public/audio/song1.mp3
+cp /home/jon/media/music/NAME_OF_YOUR_SECOND_SONG.mp3 public/audio/song2.mp3
+cp /home/jon/media/music/NAME_OF_YOUR_THIRD_SONG.mp3 public/audio/song3.mp3
 ```
 
-After installing, you will need to modify `src/scripts/control_leds.py` to use this library. The placeholder file contains comments showing where to add your hardware-specific code.
+**Important:** Remember to replace `NAME_OF_YOUR_..._SONG.mp3` with the actual filenames of your songs.
 
-### 4. Run the Application
+### Step 4: Run the Application
 
-To run the application in development mode:
+You're ready to start the server!
 
 ```bash
 npm run dev
 ```
 
-This will start the web server. You can access it from a web browser on your Raspberry Pi or another computer on the same network by navigating to `http://<YOUR_PI_IP_ADDRESS>:9002`.
+The server will start, and you'll see some output in the terminal.
 
-### 5. See the Output
+### Step 5: Access the Dashboard
 
-When you play a song in the web interface, the AI will analyze it. Check the terminal where you ran `npm run dev`. You will see output from the Python script, like this:
+From any other computer or phone on the same WiFi network, open a web browser and go to:
+
+**http://192.168.4.219:9002**
+
+You should see the Jaxi Taxi dashboard.
+
+### Step 6: Test the Lighting Control
+
+Click play on a song in the dashboard. Watch the terminal on your Raspberry Pi where you ran `npm run dev`. You should see output from the Python script, like this:
 
 ```
 [Flow] AI suggested lighting: { color: '#FF5733', intensity: 0.8, effect: 'pulse' }
@@ -74,4 +97,10 @@ When you play a song in the web interface, the AI will analyze it. Check the ter
 [Python] Child process exited with code 0
 ```
 
-This confirms that the entire flow is working. The next step is to replace the `print` statements in `control_leds.py` with your actual GPIO logic!
+This confirms that the entire system is working!
+
+### Next Step: Real Hardware (Optional)
+
+To control actual LEDs, you'll need to:
+1.  Install a Python GPIO library: `pip install RPi.GPIO`
+2.  Modify `src/scripts/control_leds.py` to use your specific GPIO pin setup. The file contains comments showing where to add your hardware code.
