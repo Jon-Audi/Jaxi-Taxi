@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: 'Luminaudio',
+  title: 'Jaxi Taxi',
   description: 'Audio-responsive LED lighting dashboard',
 };
 
