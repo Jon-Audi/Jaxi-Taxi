@@ -10,6 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { spawn } from 'child_process';
 
 const AudioAnalysisLightingInputSchema = z.object({
   audioDataUri: z
@@ -55,6 +56,32 @@ const audioAnalysisLightingFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
+    
+    if (output) {
+      console.log(`[Flow] AI suggested lighting:`, output);
+      const pythonProcess = spawn('python3', [
+        'src/scripts/control_leds.py',
+        '--color',
+        output.color,
+        '--intensity',
+        output.intensity.toString(),
+        '--effect',
+        output.effect,
+      ]);
+
+      pythonProcess.stdout.on('data', (data) => {
+        console.log(`[Python] ${data}`);
+      });
+
+      pythonProcess.stderr.on('data', (data) => {
+        console.error(`[Python Error] ${data}`);
+      });
+
+      pythonProcess.on('close', (code) => {
+        console.log(`[Python] Child process exited with code ${code}`);
+      });
+    }
+    
     return output!;
   }
 );
