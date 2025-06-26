@@ -8,15 +8,14 @@ import { LightingVisualizer } from '@/components/lighting-visualizer';
 import { SettingsPanel } from '@/components/settings-panel';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from './ui/skeleton';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Music4 } from 'lucide-react';
 
-const playlistData: Song[] = [
-    { title: 'Ambient Dreams', artist: 'Lumina', src: '/audio/song1.mp3' },
-    { title: 'Neon Pulse', artist: 'Aura', src: '/audio/song2.mp3' },
-    { title: 'Starlight Echoes', artist: 'Sonus', src: '/audio/song3.mp3' },
-];
+interface LuminaudioDashboardProps {
+  playlist: Song[];
+}
 
-export function LuminaudioDashboard() {
-  const [playlist] = useState<Song[]>(playlistData);
+export function LuminaudioDashboard({ playlist }: LuminaudioDashboardProps) {
   const [currentSongIndex, setCurrentSongIndex] = useState(0);
   const [lightingConfig, setLightingConfig] = useState<LightingConfig>({
     color: '#673AB7',
@@ -69,16 +68,45 @@ export function LuminaudioDashboard() {
   }, [settings.defaultEffect, toast]);
 
   useEffect(() => {
-    handleAiAnalysis(playlist[currentSongIndex]);
+    if (playlist.length > 0) {
+        handleAiAnalysis(playlist[currentSongIndex]);
+    } else {
+        setIsAiAnalyzing(false);
+    }
   }, [currentSongIndex, playlist, handleAiAnalysis]);
   
   const handleNextSong = useCallback(() => {
-    setCurrentSongIndex((prevIndex) => (prevIndex + 1) % playlist.length);
+    if (playlist.length > 0) {
+        setCurrentSongIndex((prevIndex) => (prevIndex + 1) % playlist.length);
+    }
   }, [playlist.length]);
 
   const handlePrevSong = () => {
-    setCurrentSongIndex((prevIndex) => (prevIndex - 1 + playlist.length) % playlist.length);
+    if (playlist.length > 0) {
+        setCurrentSongIndex((prevIndex) => (prevIndex - 1 + playlist.length) % playlist.length);
+    }
   };
+  
+  if (playlist.length === 0) {
+    return (
+      <div className="container mx-auto p-4 sm:p-6 lg:p-8 flex items-center justify-center min-h-screen">
+          <Card className="max-w-lg text-center bg-card/80 backdrop-blur-lg">
+              <CardHeader>
+                  <CardTitle className="flex items-center justify-center gap-3 text-2xl">
+                      <Music4 className="w-8 h-8 text-accent" />
+                      No Music Found
+                  </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4">
+                  <p>To get started, copy your MP3 files into the project's <code>public/audio</code> directory.</p>
+                  <p className="text-sm text-muted-foreground">
+                      Once you've added songs, just refresh this page.
+                  </p>
+              </CardContent>
+          </Card>
+      </div>
+    );
+  }
 
   const currentSong = playlist[currentSongIndex];
 

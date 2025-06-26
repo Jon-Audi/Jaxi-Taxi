@@ -4,7 +4,7 @@ This is a Next.js application that uses AI to analyze music and suggest synchron
 
 ## How It Works
 
-1.  **Frontend (Next.js/React)**: A web-based dashboard allows you to play music and visualize the suggested lighting. It is built with ShadCN UI components and Tailwind CSS.
+1.  **Frontend (Next.js/React)**: A web-based dashboard allows you to play music and visualize the suggested lighting. It is built with ShadCN UI components and Tailwind CSS. The app dynamically finds and lists any MP3 files you place in the `public/audio` folder.
 2.  **Backend (Next.js/Genkit)**: A Google Genkit flow analyzes the audio file using an AI model to determine an appropriate `color`, `intensity`, and `effect`.
 3.  **Hardware Bridge (Python)**: The Genkit flow executes a Python script on the server (your Raspberry Pi), passing the lighting parameters as arguments.
 4.  **GPIO Control (Python)**: The Python script interprets these arguments and (in a real setup) controls the GPIO pins to drive the connected LED lights.
@@ -51,18 +51,23 @@ npm install
 
 ### Step 3: Copy Your Music Files
 
-The app needs your MP3 files to be in the `public/audio/` directory. Since your music is at `/home/jon/media/music`, you can copy them over.
+You can copy any MP3 files from your music library directly into the project's `public/audio` folder. The application will automatically find and list them.
 
-Run these commands from inside the `jaxi-taxi` project directory on your Pi:
+Run this command from inside the `jaxi-taxi` project directory on your Pi to copy all MP3s from your music folder:
 
 ```bash
-# Copy your first three songs and rename them for the playlist
-cp /home/jon/media/music/NAME_OF_YOUR_FIRST_SONG.mp3 public/audio/song1.mp3
-cp /home/jon/media/music/NAME_OF_YOUR_SECOND_SONG.mp3 public/audio/song2.mp3
-cp /home/jon/media/music/NAME_OF_YOUR_THIRD_SONG.mp3 public/audio/song3.mp3
+# This command creates the 'public/audio' directory if it doesn't exist
+mkdir -p public/audio
+
+# Now, copy your music into it
+cp /home/jon/media/music/*.mp3 public/audio/
 ```
 
-**Important:** Remember to replace `NAME_OF_YOUR_..._SONG.mp3` with the actual filenames of your songs.
+If your music is in subdirectories, you can use a command like this to find and copy them all:
+```bash
+find /home/jon/media/music -type f -name "*.mp3" -exec cp -t public/audio/ {} +
+```
+**Note**: After copying the files, you may need to restart the application or refresh the browser to see your updated playlist.
 
 ### Step 4: Run the Application
 
@@ -80,7 +85,7 @@ From any other computer or phone on the same WiFi network, open a web browser an
 
 **http://192.168.4.219:9002**
 
-You should see the Jaxi Taxi dashboard.
+You should see the Jaxi Taxi dashboard. If you haven't added music, it will prompt you to. Otherwise, your playlist will appear.
 
 ### Step 6: Test the Lighting Control
 
