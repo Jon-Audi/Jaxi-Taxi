@@ -185,6 +185,73 @@ That's it! The application will now start automatically every time you boot your
 *   **Stop the service:** `sudo systemctl stop jaxi-taxi.service`
 *   **Restart the service:** `sudo systemctl restart jaxi-taxi.service`
 
+## Bonus: Kiosk Mode for the 7" Touchscreen
+
+This will make your Raspberry Pi automatically launch the Jaxi Taxi dashboard in a full-screen browser when it boots up. Perfect for a dedicated device with a screen.
+
+### 1. Ensure You're Booting to Desktop
+
+This mode requires the Raspberry Pi to boot into the graphical desktop environment.
+1.  Run `sudo raspi-config`.
+2.  Navigate to `System Options` > `Boot / Auto Login`.
+3.  Select `Desktop Autologin` (e.g., "B4 Desktop Autologin").
+4.  Finish and reboot if necessary.
+
+### 2. Install Unclutter
+
+This small utility will hide the mouse cursor after a few seconds of inactivity, which is ideal for a touchscreen interface.
+
+```bash
+sudo apt-get update && sudo apt-get install unclutter -y
+```
+
+### 3. Create the Autostart File
+
+We will create a special file that tells the desktop environment to launch our app.
+
+1.  First, make sure the autostart directory exists for your user:
+    ```bash
+    mkdir -p /home/jon/.config/autostart
+    ```
+2.  Now, create a new file inside it:
+    ```bash
+    nano /home/jon/.config/autostart/jaxi-kiosk.desktop
+    ```
+
+### 4. Add the Kiosk Configuration
+
+Copy and paste the following content into the `nano` editor:
+
+```ini
+[Desktop Entry]
+Type=Application
+Name=Jaxi Taxi Kiosk
+Comment=Launches Jaxi Taxi in Kiosk Mode
+Exec=/usr/bin/chromium-browser --kiosk --noerrdialogs --disable-infobars --no-first-run --start-maximized http://localhost:9002
+```
+
+Save and exit by pressing `Ctrl+X`, then `Y`, and `Enter`.
+
+### 5. Reboot
+
+Now, reboot your Raspberry Pi:
+
+```bash
+sudo reboot
+```
+
+When your Pi starts up, it should automatically launch into the Jaxi Taxi dashboard in full-screen mode on your 7" display.
+
+### How to Exit Kiosk Mode
+
+If you need to get back to the desktop, you have two options:
+*   **Keyboard:** Press `Alt` + `F4` to close the Chromium window.
+*   **SSH:** Connect to your Pi via SSH from another computer and remove the autostart file:
+    ```bash
+    rm /home/jon/.config/autostart/jaxi-kiosk.desktop
+    ```
+    Then reboot.
+
 ## Bonus: Automatic Updates from GitHub
 
 To keep your Raspberry Pi application up-to-date with the latest changes from your GitHub repository, you can set up a script that runs automatically.
