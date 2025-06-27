@@ -61,12 +61,20 @@ export const AudioPlayer: FC<AudioPlayerProps> = ({ song, volume, onVolumeChange
   }, [isPlaying, volume, onEnded]);
   
   useEffect(() => {
-      // When song changes, reset and play
-      if(audioRef.current) {
-        audioRef.current.currentTime = 0;
-        setProgress(0);
-        setIsPlaying(true);
+    // When song changes, reset but DON'T play automatically on initial load.
+    // If a song was already playing, continue playing the new one.
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+      setProgress(0);
+      if (isPlaying) {
+        // This ensures subsequent songs in the playlist auto-play
+        audioRef.current.play().catch(e => {
+            console.error("Autoplay for next song failed", e);
+            // If autoplay fails here, we should probably stop trying.
+            setIsPlaying(false);
+        });
       }
+    }
   }, [song]);
 
 
