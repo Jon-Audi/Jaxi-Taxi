@@ -1,3 +1,4 @@
+
 # Jaxi Taxi - Audio-Responsive LED Controller
 
 This is a Next.js application that uses AI to analyze music and suggest synchronized lighting configurations for LED lights connected to a Raspberry Pi.
@@ -7,7 +8,7 @@ This is a Next.js application that uses AI to analyze music and suggest synchron
 1.  **Frontend (Next.js/React)**: A web-based dashboard allows you to play music and visualize the suggested lighting. It is built with ShadCN UI components and Tailwind CSS. The app dynamically finds and lists any MP3 files you place in the `public/audio` folder.
 2.  **Backend (Next.js/Genkit)**: A Google Genkit flow analyzes the audio file using an AI model to determine an appropriate `color`, `intensity`, and `effect`.
 3.  **Hardware Bridge (Python)**: The Genkit flow executes a Python script on the server (your Raspberry Pi), passing the lighting parameters as arguments.
-4.  **GPIO Control (Python)**: The Python script interprets these arguments and (in a real setup) controls the GPIO pins to drive the connected LED lights.
+4.  **GPIO Control (Python)**: The Python script interprets these arguments and uses the `rpi_ws281x` library to control a connected WS2812B addressable LED strip.
 
 ---
 
@@ -25,7 +26,11 @@ Make sure your Raspberry Pi has the following installed:
     curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
     sudo apt-get install -y nodejs
     ```
-*   **Python 3**: This is usually pre-installed on Raspberry Pi OS.
+*   **Python 3 & Pip**: This is usually pre-installed on Raspberry Pi OS. Check with `python3 --version` and `pip3 --version`. If you need pip, install it:
+    ```bash
+    sudo apt-get update
+    sudo apt-get install python3-pip
+    ```
 
 ### Step 1: Get the Code on Your Pi
 
@@ -43,15 +48,48 @@ First, you'll need to get the project files onto your Raspberry Pi. The easiest 
 
 ### Step 2: Install Project Dependencies
 
-Now, install the necessary Node.js packages. This might take a few minutes on a Raspberry Pi.
+Now, install the necessary Node.js and Python packages.
 
-```bash
-npm install
-```
+1.  **Install Node.js packages:**
+    ```bash
+    npm install
+    ```
+2.  **Install Python packages for LED control:** This library requires root access for installation and execution.
+    ```bash
+    sudo pip3 install rpi_ws281x adafruit-circuitpython-neopixel
+    ```
 
-### Step 3: Copy Your Music Files
+### Step 3: Hardware Setup (for WS2812B strip)
 
-You can copy any MP3 files from your music library directly into the project's `public/audio` folder. The application will automatically find and list them.
+To control a WS2812B (or similar, like NeoPixel) addressable LED strip, you need to connect it to the Raspberry Pi's GPIO pins.
+
+**⚠️ Power Warning:** LED strips can draw a lot of current. A long strip can easily damage your Raspberry Pi if powered directly from its 5V pin. **It is highly recommended to use a separate, dedicated 5V power supply** that can provide enough amperage for your strip (check your strip's specifications).
+
+**Wiring:**
+
+1.  **Connect Grounds:** The most important step is to connect the **Ground (GND)** pin from your external 5V power supply to a **GND pin on the Raspberry Pi** AND to the **GND wire on your LED strip**. This creates a common ground reference.
+2.  **Connect Data:** Connect the **Data Input (DI or DIN)** wire of the LED strip to a PWM-capable GPIO pin on the Pi. **GPIO 18 (Pin 12)** is a common choice and is the default in the script.
+3.  **Connect Power:** Connect the **5V** wire of your LED strip to the **positive (+)** terminal of your external 5V power supply. Do NOT connect this to the Pi's 5V pin unless you have a very short strip (fewer than 15-20 LEDs) and know what you're doing.
+
+**Logic Level Shifter (Recommended):** Raspberry Pi GPIO pins operate at 3.3V, while WS2812B strips expect a 5V data signal. For short data wire runs it might work, but for reliability, it's best to use a logic level shifter to boost the signal from 3.3V to 5V.
+
+### Step 4: Configure the LED Script
+
+Before running, you might need to edit the Python script to match your hardware.
+
+1. Open the script:
+   ```bash
+   nano src/scripts/control_leds.py
+   ```
+2.  Update the configuration variables at the top of the file:
+    *   `LED_COUNT`: Change this to the number of LEDs on your strip.
+    *   `LED_PIN`: Change this if you used a different GPIO pin than `board.D18`.
+    *   `PIXEL_ORDER`: If your colors look wrong (e.g., red shows as green), try changing `"GRB"` to `"RGB"`.
+3.  Press `Ctrl+X`, then `Y`, then `Enter` to save and exit.
+
+### Step 5: Copy Your Music Files
+
+The app needs your MP3 files to be in the `public/audio/` directory.
 
 Run this command from inside the `jaxi-taxi` project directory on your Pi to copy all MP3s from your music folder:
 
@@ -69,43 +107,81 @@ find /home/jon/media/music -type f -name "*.mp3" -exec cp -t public/audio/ {} +
 ```
 **Note**: After copying the files, you may need to restart the application or refresh the browser to see your updated playlist.
 
-### Step 4: Run the Application
+### Step 6: Run the Application
 
-You're ready to start the server!
+Because the Python script needs to access hardware GPIO, it must be run with `sudo`. Therefore, you need to run the main Node.js application with `sudo` as well.
 
 ```bash
-npm run dev
+sudo npm run dev
 ```
 
 The server will start, and you'll see some output in the terminal.
 
-### Step 5: Access the Dashboard
+### Step 7: Access the Dashboard
 
 From any other computer or phone on the same WiFi network, open a web browser and go to:
 
 **http://192.168.4.219:9002**
 
-You should see the Jaxi Taxi dashboard. If you haven't added music, it will prompt you to. Otherwise, your playlist will appear.
+You should see the Jaxi Taxi dashboard. Click play on a song. You should see output in your Pi's terminal from both the AI flow and the Python script, and your LED strip should light up!
 
-### Step 6: Test the Lighting Control
+## Bonus: Running on Boot (systemd)
 
-Click play on a song in the dashboard. Watch the terminal on your Raspberry Pi where you ran `npm run dev`. You should see output from the Python script, like this:
+To have this application start automatically when your Raspberry Pi boots, create a `systemd` service.
 
-```
-[Flow] AI suggested lighting: { color: '#FF5733', intensity: 0.8, effect: 'pulse' }
-[Python] GPIO_SETUP: Initializing GPIO pins.
-[Python] GPIO_SETUP: Setup complete.
-[Python] LED_CONTROL: Applying effect 'pulse'
-[Python] LED_CONTROL: Setting color to RGB(255, 87, 51)
-[Python] LED_CONTROL: Setting intensity to 80%
-[Python] GPIO_CLEANUP: Releasing GPIO resources.
-[Python] Child process exited with code 0
+### 1. Create a Service File
+
+```bash
+sudo nano /etc/systemd/system/jaxi-taxi.service
 ```
 
-This confirms that the entire system is working!
+### 2. Add the Service Configuration
 
-### Next Step: Real Hardware (Optional)
+Copy and paste the following content. We're setting `User=root` so the process has the necessary permissions to control the GPIO pins.
 
-To control actual LEDs, you'll need to:
-1.  Install a Python GPIO library: `pip install RPi.GPIO`
-2.  Modify `src/scripts/control_leds.py` to use your specific GPIO pin setup. The file contains comments showing where to add your hardware code.
+```ini
+[Unit]
+Description=Jaxi Taxi Application
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/jon/jaxi-taxi
+ExecStart=/usr/bin/npm run dev
+Restart=on-failure
+RestartSec=10
+Environment=PATH=/usr/bin:/usr/local/bin
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
+```
+*   **Tip:** To find the exact path to `npm`, you can run `which npm` in your terminal and replace `/usr/bin/npm` if it's different.
+
+Press `Ctrl+X` to exit, `Y` to save the changes, and `Enter` to confirm the filename.
+
+### 3. Enable and Start the Service
+
+Now, tell `systemd` to recognize the new service and start it:
+
+```bash
+# Reload systemd to read the new service file
+sudo systemctl daemon-reload
+
+# Enable the service to start on boot
+sudo systemctl enable jaxi-taxi.service
+
+# Start the service immediately
+sudo systemctl start jaxi-taxi.service
+```
+
+That's it! The application will now start automatically every time you boot your Raspberry Pi.
+
+### 4. Useful Service Commands
+
+*   **Check the status:** `sudo systemctl status jaxi-taxi.service`
+*   **View the logs:** `sudo journalctl -u jaxi-taxi.service -f`
+*   **Stop the service:** `sudo systemctl stop jaxi-taxi.service`
+*   **Restart the service:** `sudo systemctl restart jaxi-taxi.service`
+```
