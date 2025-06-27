@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/select';
 import { Settings as SettingsIcon } from 'lucide-react';
 import type { Settings, LightingEffect } from '@/types';
+import { Slider } from './ui/slider';
 
 interface SettingsPanelProps {
   settings: Settings;
@@ -27,6 +28,10 @@ interface SettingsPanelProps {
 export const SettingsPanel: FC<SettingsPanelProps> = ({ settings, onSettingsChange }) => {
   const handleEffectChange = (value: LightingEffect) => {
     onSettingsChange({ ...settings, defaultEffect: value });
+  };
+
+  const handleScaleChange = (value: number[]) => {
+    onSettingsChange({ ...settings, uiScale: value[0] });
   };
 
   return (
@@ -59,6 +64,21 @@ export const SettingsPanel: FC<SettingsPanelProps> = ({ settings, onSettingsChan
           </Select>
           <p className="text-sm text-muted-foreground">
             Fallback effect if AI analysis fails.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="ui-scale">UI Scale</Label>
+          <Slider
+            id="ui-scale"
+            min={0.8}
+            max={1.2}
+            step={0.05}
+            value={[settings.uiScale]}
+            onValueChange={handleScaleChange}
+          />
+          <p className="text-sm text-muted-foreground">
+            Adjust the size of the dashboard components.
           </p>
         </div>
 

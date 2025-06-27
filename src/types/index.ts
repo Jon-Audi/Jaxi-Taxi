@@ -15,4 +15,5 @@ export interface LightingConfig {
 export interface Settings {
   volume: number;
   defaultEffect: LightingEffect;
+  uiScale: number;
 }

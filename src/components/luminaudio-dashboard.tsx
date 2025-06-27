@@ -25,6 +25,7 @@ export function LuminaudioDashboard({ playlist }: LuminaudioDashboardProps) {
   const [settings, setSettings] = useState<Settings>({
     volume: 0.5,
     defaultEffect: 'pulse',
+    uiScale: 1,
   });
   const [isAiAnalyzing, setIsAiAnalyzing] = useState(true);
   const { toast } = useToast();
@@ -121,7 +122,10 @@ export function LuminaudioDashboard({ playlist }: LuminaudioDashboardProps) {
         </p>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+      <div
+        className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto transition-transform duration-300"
+        style={{ transform: `scale(${settings.uiScale})` }}
+      >
         <div className="lg:col-span-1">
           <AudioPlayer
             song={currentSong}

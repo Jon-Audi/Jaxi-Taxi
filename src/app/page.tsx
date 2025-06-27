@@ -45,7 +45,7 @@ export default function Home() {
           <source src="/videos/background.mp4" type="video/mp4" />
           Your browser does not support the video tag.
         </video>
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-md" />
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-md" />
       </div>
       <LuminaudioDashboard playlist={playlist} />
     </main>
