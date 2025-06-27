@@ -206,19 +206,21 @@ Paste the following into the `update.sh` file:
 cd /home/jon/jaxi-taxi || exit
 
 # Fetch the latest changes from the remote repository
+echo "Fetching latest updates from GitHub..."
 git fetch origin
 
-# Check if there are any changes on the main branch
-if ! git diff --quiet origin/main; then
-    echo "Changes detected. Pulling updates..."
+# Check if there are any changes
+# HEAD is your local commit, origin/main is the remote commit
+if [ $(git rev-parse HEAD) != $(git rev-parse origin/main) ]; then
+    echo "Changes detected. Applying updates..."
     
-    # Stash any local changes (like package-lock.json) and pull the latest code
-    git stash
-    git pull origin main --rebase
-    git stash pop
+    # This command forcefully resets your local main branch to match the one from GitHub.
+    # It will overwrite any local code changes but will NOT delete untracked files
+    # (like your music files in /public/audio, thanks to the .gitignore file).
+    git reset --hard origin/main
     
-    # Install any new dependencies
-    echo "Installing/updating Node.js packages..."
+    # Install/update Node.js packages if package.json has changed
+    echo "Checking for new dependencies..."
     npm install
     
     # Restart the systemd service to apply all changes
@@ -253,5 +255,28 @@ chmod +x update.sh
     This line means: "At minute 0 of every hour, of every day, run the `update.sh` script. Send all output (both normal and errors) to an `update.log` file in the project directory."
 
 Save and exit the file. Your Raspberry Pi will now automatically check for and apply updates every hour!
-```
-    
+
+---
+
+## Troubleshooting Git Update Errors
+
+If you see an error like `The following untracked working tree files would be overwritten by merge` when running `git pull` or the `update.sh` script, it means Git is trying to protect files you've added locally (like your MP3s). Here's how to fix it:
+
+1.  **Create a temporary backup of your music:**
+    ```bash
+    mv public/audio /tmp/audio_backup
+    ```
+2.  **Force the repository to reset to the latest version from GitHub:**
+    ```bash
+    git reset --hard origin/main
+    ```
+3.  **Pull the very latest changes (which now includes a rule to ignore your music files):**
+    ```bash
+    git pull origin main
+    ```
+4.  **Move your music back:**
+    ```bash
+    mv /tmp/audio_backup public/
+    ```
+
+After doing this once, the automatic `update.sh` script should work without this error in the future.
