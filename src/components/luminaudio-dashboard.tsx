@@ -117,9 +117,6 @@ export function LuminaudioDashboard({ playlist }: LuminaudioDashboardProps) {
         <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl font-headline">
           Jaxi Taxi
         </h1>
-        <p className="mt-2 text-lg text-muted-foreground">
-          Your personal audio-visual experience
-        </p>
       </header>
 
       <div
