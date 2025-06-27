@@ -184,4 +184,74 @@ That's it! The application will now start automatically every time you boot your
 *   **View the logs:** `sudo journalctl -u jaxi-taxi.service -f`
 *   **Stop the service:** `sudo systemctl stop jaxi-taxi.service`
 *   **Restart the service:** `sudo systemctl restart jaxi-taxi.service`
+
+## Bonus: Automatic Updates from GitHub
+
+To keep your Raspberry Pi application up-to-date with the latest changes from your GitHub repository, you can set up a script that runs automatically.
+
+### 1. Create an Update Script
+
+First, create a script that will pull the latest code and restart the app.
+
+```bash
+# From your project directory /home/jon/jaxi-taxi
+nano update.sh
 ```
+
+Paste the following into the `update.sh` file:
+```bash
+#!/bin/bash
+
+# Navigate to your project directory
+cd /home/jon/jaxi-taxi || exit
+
+# Fetch the latest changes from the remote repository
+git fetch origin
+
+# Check if there are any changes on the main branch
+if ! git diff --quiet origin/main; then
+    echo "Changes detected. Pulling updates..."
+    
+    # Stash any local changes (like package-lock.json) and pull the latest code
+    git stash
+    git pull origin main --rebase
+    git stash pop
+    
+    # Install any new dependencies
+    echo "Installing/updating Node.js packages..."
+    npm install
+    
+    # Restart the systemd service to apply all changes
+    echo "Restarting Jaxi Taxi service..."
+    sudo systemctl restart jaxi-taxi.service
+    
+    echo "Update complete."
+else
+    echo "No new changes from GitHub. Jaxi Taxi is up to date."
+fi
+```
+Save and exit by pressing `Ctrl+X`, then `Y`, then `Enter`.
+
+### 2. Make the Script Executable
+You need to give the script permission to be executed.
+```bash
+chmod +x update.sh
+```
+
+### 3. Schedule the Script with Cron
+`cron` is a utility that runs tasks on a schedule. We'll set it to run your update script every hour.
+
+1.  Open the cron table for editing:
+    ```bash
+    crontab -e
+    ```
+2.  If it's your first time, you might be asked to choose an editor. Select `nano`.
+3.  Add the following line to the bottom of the file:
+    ```
+    0 * * * * /home/jon/jaxi-taxi/update.sh >> /home/jon/jaxi-taxi/update.log 2>&1
+    ```
+    This line means: "At minute 0 of every hour, of every day, run the `update.sh` script. Send all output (both normal and errors) to an `update.log` file in the project directory."
+
+Save and exit the file. Your Raspberry Pi will now automatically check for and apply updates every hour!
+```
+    
