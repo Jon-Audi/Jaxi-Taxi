@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import Image from 'next/image';
 import { LuminaudioDashboard } from '@/components/luminaudio-dashboard';
 import type { Song } from '@/types';
 
@@ -37,14 +36,15 @@ export default function Home() {
   return (
     <main className="relative min-h-screen w-full font-body">
       <div className="fixed h-full w-full -z-10">
-        <Image
-          src="https://placehold.co/1920x1080.png"
-          alt="Animated background"
-          data-ai-hint="abstract particles"
-          fill
-          className="object-cover"
-          unoptimized
-        />
+        <video
+          autoPlay
+          loop
+          muted
+          className="w-full h-full object-cover"
+        >
+          <source src="/videos/background.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
         <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
       </div>
       <LuminaudioDashboard playlist={playlist} />

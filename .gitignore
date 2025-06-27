@@ -24,7 +24,7 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
+.pnpm-debug.log*
 
 # local env files
 .env.local
@@ -39,5 +39,7 @@ pnpm-debug.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# logs
-*.log
+# Large media files
+public/audio/*.mp3
+public/videos/*.mp4
+public/videos/*.gif
