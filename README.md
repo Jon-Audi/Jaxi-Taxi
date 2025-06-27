@@ -1,20 +1,29 @@
-
 # Jaxi Taxi - Audio-Responsive LED Controller
 
 This is a Next.js application that uses AI to analyze music and suggest synchronized lighting configurations for LED lights connected to a Raspberry Pi.
 
-## How It Works
+## 🚀 Easy Installation (Recommended)
 
-1.  **Frontend (Next.js/React)**: A web-based dashboard allows you to play music and visualize the suggested lighting. It is built with ShadCN UI components and Tailwind CSS. The app dynamically finds and lists any MP3 files you place in the `public/audio` folder.
-2.  **Backend (Next.js/Genkit)**: A Google Genkit flow analyzes the audio file using an AI model to determine an appropriate `color`, `intensity`, and `effect`.
-3.  **Hardware Bridge (Python)**: The Genkit flow executes a Python script on the server (your Raspberry Pi), passing the lighting parameters as arguments.
-4.  **GPIO Control (Python)**: The Python script interprets these arguments and uses the `rpi_ws281x` library to control a connected WS2812B addressable LED strip.
+For a fresh Raspberry Pi setup, you can use the automated installation script. This will install all dependencies, set up the application to run on boot, and configure kiosk mode for a touchscreen.
+
+1.  **Open a terminal on your Raspberry Pi.**
+2.  **Download and run the setup script with one command:**
+
+    ```bash
+    bash <(curl -s https://raw.githubusercontent.com/Jon-Audi/Jaxi-Taxi/main/setup.sh)
+    ```
+    *Note: The script is pre-configured for your GitHub repository. If you move it, you'll need to update the URL inside the script.*
+
+3.  **Follow the prompts.** The script will ask for your password to install software.
+4.  **Reboot** when it's finished.
+
+That's it! The script handles everything from the detailed guide below.
 
 ---
 
-## Step-by-Step Guide for Your Raspberry Pi
+## 🛠️ Step-by-Step Manual Guide
 
-Absolutely! Here is a personalized guide to get Jaxi Taxi running on your Raspberry Pi at `192.168.4.219`.
+This guide contains the detailed manual steps for installing and configuring the application. The easy installation script above automates this process.
 
 ### Prerequisites
 
