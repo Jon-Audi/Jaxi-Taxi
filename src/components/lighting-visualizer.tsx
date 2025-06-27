@@ -20,7 +20,7 @@ export const LightingVisualizer: FC<LightingVisualizerProps> = ({ config }) => {
   };
 
   return (
-    <Card className="w-full h-64 md:h-80 lg:h-full flex flex-col justify-between overflow-hidden">
+    <Card className="w-full h-64 md:h-80 lg:h-full flex flex-col justify-between overflow-hidden border-white/20 bg-card/80 backdrop-blur-lg">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Lightbulb className="text-accent" />

@@ -30,7 +30,7 @@ export const SettingsPanel: FC<SettingsPanelProps> = ({ settings, onSettingsChan
   };
 
   return (
-    <Card>
+    <Card className="border-white/20 bg-card/80 backdrop-blur-lg">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <SettingsIcon className="text-accent" />
