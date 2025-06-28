@@ -70,15 +70,25 @@ npm cache clean --force
 
 echo "Re-installing Node.js packages from scratch..."
 npm install
+if [ $? -ne 0 ]; then
+    echo "ERROR: npm install failed. Aborting."
+    exit 1
+fi
 
 echo "Building application for production..."
 npm run build
+if [ $? -ne 0 ]; then
+    echo "ERROR: npm run build failed. Aborting."
+    exit 1
+fi
 
 
 # --- Step 4: Create Media Directories ---
 echo "Creating directories for your media..."
 mkdir -p public/audio
 mkdir -p public/videos
+sudo chown -R $USER:$USER "$APP_DIR/public"
+
 
 # --- Step 5: Set up systemd Service (Run on Boot) ---
 echo "Creating systemd service to run the app on boot..."
