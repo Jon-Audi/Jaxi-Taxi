@@ -39,7 +39,7 @@ const prompt = ai.definePrompt({
   input: {schema: AudioAnalysisLightingInputSchema},
   output: {schema: AudioAnalysisLightingOutputSchema},
   prompt: `You are an AI assistant for a music-reactive LED system called Jaxi Taxi.
-Your task is to analyze the mood, tempo, and energy of an audio track and suggest a synchronized lighting configuration.
+Your task is to analyze the mood, tempo, and energy of an audio track and suggest a synchronized lighting configuration for a device running WLED.
 
 Based on the provided audio data, determine the most fitting:
 1.  **Color**: A single hex color code (e.g., '#FF00FF') that captures the song's primary emotion.
