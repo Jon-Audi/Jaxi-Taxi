@@ -23,35 +23,36 @@ def hex_to_rgb(hex_color):
 
 def apply_brightness(color, brightness):
     """Applies a brightness level to an RGB color tuple."""
-    # Clamp brightness between 0 and 1
     brightness = max(0.0, min(1.0, brightness))
     return tuple(int(c * brightness) for c in color)
 
 # --- Effect Implementations ---
-# These effects are designed to be short-lived since this script is
-# executed for each new AI suggestion.
+# These effects act as "intro" animations. The script sets the final
+# color and exits, leaving the lights on until the next command.
 
 def effect_static(strip, color, intensity):
-    """Fills the entire strip with a static color."""
+    """Fills the entire strip with a static color and leaves it on."""
     final_color = apply_brightness(color, intensity)
     strip.fill(final_color)
     strip.show()
-    # The script will exit, leaving the LEDs in this state until the next command.
-    time.sleep(0.1) 
 
 def effect_pulse(strip, color, intensity):
-    """Creates a single smooth pulse effect over a short duration."""
+    """Creates a single smooth pulse and then leaves the light on."""
+    final_static_color = apply_brightness(color, intensity)
     for i in range(100):
-        # Create a sine wave for brightness fluctuation
+        # Sine wave for brightness from 0 -> 1 -> 0
         brightness_factor = (math.sin(i / 100.0 * math.pi))
         pulse_intensity = intensity * brightness_factor
         final_color = apply_brightness(color, pulse_intensity)
         strip.fill(final_color)
         strip.show()
         time.sleep(0.01)
+    # After the pulse, set to the final static color.
+    strip.fill(final_static_color)
+    strip.show()
 
 def effect_strobe(strip, color, intensity):
-    """Creates a few quick strobe flashes."""
+    """Creates a few quick flashes and then leaves the light on."""
     final_color = apply_brightness(color, intensity)
     off_color = (0, 0, 0)
     for _ in range(4):
@@ -61,9 +62,12 @@ def effect_strobe(strip, color, intensity):
         strip.fill(off_color)
         strip.show()
         time.sleep(0.08)
+    # After strobing, set to the final static color.
+    strip.fill(final_color)
+    strip.show()
 
 def effect_fade(strip, color, intensity):
-    """Fades the strip from black to the target color."""
+    """Fades the strip from black to the target color and leaves it on."""
     for i in range(50):
         fade_intensity = intensity * (i / 49.0)
         final_color = apply_brightness(color, fade_intensity)
@@ -79,8 +83,6 @@ def main():
     
     args = parser.parse_args()
 
-    # Initialize the NeoPixel strip.
-    # This requires root privileges to access GPIO.
     strip = None
     try:
         strip = NeoPixel(
@@ -90,38 +92,31 @@ def main():
             brightness=LED_BRIGHTNESS,
             pixel_order=PIXEL_ORDER
         )
-    except Exception as e:
-        print(f"[Python Error] Error initializing NeoPixel strip: {e}", flush=True)
-        print("[Python Error] This script must be run with 'sudo' to access GPIO.", flush=True)
-        return
-
-    rgb_color = hex_to_rgb(args.color)
+        
+        rgb_color = hex_to_rgb(args.color)
     
-    effects = {
-        'static': effect_static,
-        'pulse': effect_pulse,
-        'strobe': effect_strobe,
-        'fade': effect_fade
-    }
-    
-    effect_func = effects.get(args.effect.lower())
+        effects = {
+            'static': effect_static,
+            'pulse': effect_pulse,
+            'strobe': effect_strobe,
+            'fade': effect_fade
+        }
+        
+        effect_func = effects.get(args.effect.lower())
 
-    if effect_func:
-        try:
+        if effect_func:
             print(f"[Python] Applying effect '{args.effect}' with color '{args.color}'", flush=True)
             effect_func(strip, rgb_color, args.intensity)
-            # Turn off lights after effect to be ready for the next command
-            strip.fill((0,0,0))
-            strip.show()
-        except KeyboardInterrupt:
-            print("[Python] Execution interrupted.", flush=True)
-        finally:
-            # Ensure pixels are off before exiting
-            if strip:
-                strip.fill((0,0,0))
-                strip.show()
-    else:
-        print(f"[Python Error] Unknown effect: {args.effect}", flush=True)
+        else:
+            print(f"[Python Error] Unknown effect: {args.effect}", flush=True)
+            # Default to a static color if effect is unknown
+            effect_static(strip, rgb_color, args.intensity)
+
+    except Exception as e:
+        print(f"[Python Error] Error initializing or running effect: {e}", flush=True)
+        print("[Python Error] Make sure the script is run with 'sudo', the GPIO pin is correct, and the hardware is wired properly.", flush=True)
+    
+    # The script now exits without turning off the LEDs, so the state persists.
 
 if __name__ == "__main__":
     main()
