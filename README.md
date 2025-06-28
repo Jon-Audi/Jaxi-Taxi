@@ -136,17 +136,23 @@ void loop() {
 
 // --- Route Handlers ---
 void handleSetLeds() {
+  Serial.println("\n--- New Request Received ---");
+
   if (server.hasArg("plain") == false) {
+    Serial.println("[ERROR] Request has no body.");
     server.send(400, "text/plain", "Body not received");
     return;
   }
   
   String body = server.arg("plain");
+  Serial.print("Request Body: ");
+  Serial.println(body);
+  
   StaticJsonDocument<256> doc;
   DeserializationError error = deserializeJson(doc, body);
 
   if (error) {
-    Serial.print("deserializeJson() failed: ");
+    Serial.print("[ERROR] deserializeJson() failed: ");
     Serial.println(error.c_str());
     server.send(400, "text/plain", "Invalid JSON");
     return;
@@ -157,16 +163,21 @@ void handleSetLeds() {
   float intensity = doc["intensity"];  // 0.0 to 1.0
   const char* effect = doc["effect"];  // "pulse", "fade", etc.
 
+  Serial.printf("Parsed Data -> Color: %s, Intensity: %.2f, Effect: %s\n", color_hex, intensity, effect);
+
   // Convert hex color to RGB
   long number = strtol(&color_hex[1], NULL, 16);
   int r = number >> 16;
   int g = (number >> 8) & 0xFF;
   int b = number & 0xFF;
 
+  Serial.printf("Converted RGB -> R: %d, G: %d, B: %d\n", r, g, b);
+
   // Apply the effect
   applyEffect(r, g, b, intensity, effect);
 
   server.send(200, "application/json", "{\"status\":\"ok\"}");
+  Serial.println("--- Request Handled Successfully ---");
 }
 
 void handleNotFound(){
@@ -505,3 +516,24 @@ This happens when you've added local files (like your MP3s) that Git isn't track
     sudo systemctl restart jaxi-taxi.service
     ```
 This should resolve the error. The new `.gitignore` file will prevent this from happening again with your music files.
+
+### ESP32 Troubleshooting
+
+If your lights aren't responding, follow these steps:
+
+1.  **Check the ESP32 Serial Monitor:**
+    *   Connect the ESP32 to your computer and open the Arduino IDE.
+    *   Open the Serial Monitor (top-right icon) and set the baud rate to `115200`.
+    *   Reset the ESP32. You should see it connect to your WiFi and print its IP address. If not, double-check your WiFi credentials in the code.
+    *   When a song plays in Jaxi Taxi, the monitor should print `--- New Request Received ---` along with the JSON data. If you don't see this, the Pi is not reaching the ESP32.
+
+2.  **Verify the IP Address:**
+    *   Make sure the IP address in the ESP32's Serial Monitor is the *exact same* one you put in the `/home/jon/jaxi-taxi/.env` file on your Raspberry Pi (including the `http://` prefix).
+
+3.  **Check Pi Logs:**
+    *   On your Raspberry Pi, run `sudo journalctl -u jaxi-taxi.service -f`.
+    *   When a song plays, you should see a log message like `[Flow] Sending command to ESP32 at http://...`.
+    *   If you see a network error, it confirms the Pi cannot connect to the ESP32.
+
+4.  **Confirm Network Connectivity:**
+    *   On the Raspberry Pi, try to `ping <ESP32_IP_ADDRESS>` (without the `http://`). If you get a response, the devices can see each other on the network. If not, there is a network issue (e.g., they are on different WiFi networks or a firewall is blocking them).

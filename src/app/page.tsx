@@ -35,18 +35,16 @@ export default function Home() {
 
   return (
     <main className="relative min-h-screen w-full font-body">
-      <div className="fixed h-full w-full -z-10">
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="w-full h-full object-cover"
-        >
-          <source src="/videos/background.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-      </div>
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="fixed h-full w-full object-cover -z-10"
+      >
+        <source src="/videos/background.mp4" type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
       <LuminaudioDashboard playlist={playlist} />
     </main>
   );
