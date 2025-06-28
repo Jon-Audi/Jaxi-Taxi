@@ -27,7 +27,7 @@ interface AudioPlayerProps {
 
 export const AudioPlayer: FC<AudioPlayerProps> = ({ song, volume, onVolumeChange, onNext, onPrev, onEnded }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
 
@@ -61,8 +61,7 @@ export const AudioPlayer: FC<AudioPlayerProps> = ({ song, volume, onVolumeChange
   }, [isPlaying, volume, onEnded]);
   
   useEffect(() => {
-    // When song changes, reset but DON'T play automatically on initial load.
-    // If a song was already playing, continue playing the new one.
+    // When song changes, if we are in a playing state, start the new song.
     if (audioRef.current) {
       audioRef.current.currentTime = 0;
       setProgress(0);
@@ -75,7 +74,7 @@ export const AudioPlayer: FC<AudioPlayerProps> = ({ song, volume, onVolumeChange
         });
       }
     }
-  }, [song]);
+  }, [song, isPlaying]);
 
 
   const togglePlayPause = () => {

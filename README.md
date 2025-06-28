@@ -280,12 +280,18 @@ find /home/jon/media/music -type f -name "*.mp3" -exec cp -t public/audio/ {} +
 ```
 **Note**: After copying the files, you may need to restart the application or refresh the browser to see your updated playlist.
 
-### Step 6: Run the Application
+### Step 6: Build and Run the Application
 
-If you haven't set up the `systemd` service, you can run the app manually:
-```bash
-npm run dev
-```
+If you haven't set up the `systemd` service, you can run the app manually. For the best performance, you should build the optimized version first.
+
+1.  **Build the app:**
+    ```bash
+    npm run build
+    ```
+2.  **Start the app:**
+    ```bash
+    npm run start
+    ```
 
 ### Step 7: Access the Dashboard
 
@@ -322,7 +328,7 @@ After=network.target
 Type=simple
 User=jon
 WorkingDirectory=/home/jon/jaxi-taxi
-ExecStart=/usr/bin/npm run dev
+ExecStart=/usr/bin/npm run start
 Restart=on-failure
 RestartSec=10
 EnvironmentFile=/home/jon/jaxi-taxi/.env
@@ -330,7 +336,7 @@ EnvironmentFile=/home/jon/jaxi-taxi/.env
 [Install]
 WantedBy=multi-user.target
 ```
-*   **Note:** We added `EnvironmentFile` to ensure your `.env` variables are loaded by the service.
+*   **Note:** We changed `ExecStart` to `npm run start` for better performance and added `EnvironmentFile` to ensure your `.env` variables are loaded by the service.
 
 Press `Ctrl+X` to exit, `Y` to save the changes, and `Enter` to confirm the filename.
 
@@ -395,7 +401,7 @@ Copy and paste the following content into the `nano` editor:
 Type=Application
 Name=Jaxi Taxi Kiosk
 Comment=Launches Jaxi Taxi in Kiosk Mode
-Exec=/usr/bin/chromium-browser --kiosk --noerrdialogs --disable-infobars --no-first-run --start-maximized http://localhost:9002
+Exec=/usr/bin/chromium-browser --kiosk --noerrdialogs --disable-infobars --no-first-run --start-maximized --autoplay-policy=no-user-gesture-required --ignore-gpu-blacklist --enable-gpu-rasterization http://localhost:9002
 ```
 
 Save and exit by pressing `Ctrl+X`, then `Y`, and `Enter`.
@@ -432,10 +438,16 @@ git fetch origin
 if [ $(git rev-parse HEAD) != $(git rev-parse origin/main) ]; then
     echo "Changes detected. Applying updates..."
     
-    git reset --hard origin/main
+    # Stash local changes (like package-lock.json), pull, then pop
+    git stash
+    git pull origin main --rebase
+    git stash pop
     
     echo "Checking for new dependencies..."
     npm install
+
+    echo "Building application for production..."
+    npm run build
     
     echo "Restarting Jaxi Taxi service..."
     sudo systemctl restart jaxi-taxi.service
@@ -459,3 +471,37 @@ chmod +x update.sh
     0 * * * * /home/jon/jaxi-taxi/update.sh >> /home/jon/jaxi-taxi/update.log 2>&1
     ```
 Save and exit. Your Raspberry Pi will now automatically check for and apply updates every hour.
+
+---
+
+## Troubleshooting
+
+### `git pull` fails with `untracked working tree files` error
+
+This happens when you've added local files (like your MP3s) that Git isn't tracking, and an incoming update might conflict with them.
+
+**How to Fix:**
+1.  **Temporarily move your audio files:**
+    ```bash
+    # From your /home/jon/jaxi-taxi directory
+    mkdir ../temp_audio
+    mv public/audio/*.mp3 ../temp_audio/
+    ```
+2.  **Clean your Git repository:**
+    ```bash
+    git clean -fd
+    ```
+3.  **Pull the latest updates:**
+    ```bash
+    git pull origin main
+    ```
+4.  **Move your audio files back:**
+    ```bash
+    mv ../temp_audio/*.mp3 public/audio/
+    rm -rf ../temp_audio
+    ```
+5.  **Restart the service** to pick up the new code:
+    ```bash
+    sudo systemctl restart jaxi-taxi.service
+    ```
+This should resolve the error. The new `.gitignore` file will prevent this from happening again with your music files.

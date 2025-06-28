@@ -13,9 +13,9 @@ USER="jon"
 echo "--- Starting Jaxi Taxi Setup ---"
 
 # --- Step 1: Install System Dependencies ---
-echo "Updating package lists and installing dependencies (git, nodejs, python)..."
+echo "Updating package lists and installing dependencies (git, nodejs, unclutter)..."
 sudo apt-get update
-sudo apt-get install -y git nodejs npm python3-pip unclutter
+sudo apt-get install -y git nodejs npm unclutter
 
 # Install Node.js v20 if not present or version is too old
 # (This is more robust than the simple apt-get install)
@@ -44,8 +44,8 @@ cd "$APP_DIR" || exit
 echo "Installing Node.js packages..."
 npm install
 
-echo "Installing Python packages for LED control..."
-sudo pip3 install rpi_ws281x adafruit-circuitpython-neopixel
+echo "Building application for production..."
+npm run build
 
 
 # --- Step 4: Create Music and Video Directories ---
@@ -65,12 +65,12 @@ After=network.target
 
 [Service]
 Type=simple
-User=root
+User=$USER
 WorkingDirectory=$APP_DIR
-ExecStart=/usr/bin/npm run dev
+ExecStart=/usr/bin/npm run start
 Restart=on-failure
 RestartSec=10
-Environment=PATH=/usr/bin:/usr/local/bin
+EnvironmentFile=$APP_DIR/.env
 Environment=NODE_ENV=production
 
 [Install]
@@ -96,7 +96,7 @@ cat > "$KIOSK_DESKTOP_FILE" << EOL
 Type=Application
 Name=Jaxi Taxi Kiosk
 Comment=Launches Jaxi Taxi in Kiosk Mode
-Exec=/usr/bin/chromium-browser --kiosk --noerrdialogs --disable-infobars --no-first-run --start-maximized http://localhost:9002
+Exec=/usr/bin/chromium-browser --kiosk --noerrdialogs --disable-infobars --no-first-run --start-maximized --autoplay-policy=no-user-gesture-required --ignore-gpu-blacklist --enable-gpu-rasterization http://localhost:9002
 EOL
 
 # Ensure the user owns the autostart configuration
@@ -110,9 +110,10 @@ echo ""
 echo "The application is now running and will start automatically on boot."
 echo ""
 echo "IMPORTANT NEXT STEPS:"
-echo "1. Add your MP3 files to: $APP_DIR/public/audio/"
-echo "2. Add your background video as: $APP_DIR/public/videos/background.mp4"
-echo "3. If you haven't already, REBOOT your Pi to ensure kiosk mode starts correctly: sudo reboot"
+echo "1. Create the .env file if your app needs it (e.g., for the ESP32 IP address)."
+echo "2. Add your MP3 files to: $APP_DIR/public/audio/"
+echo "3. Add your background video as: $APP_DIR/public/videos/background.mp4"
+echo "4. If you haven't already, REBOOT your Pi to ensure kiosk mode starts correctly: sudo reboot"
 echo ""
 echo "You can access the dashboard from another device at: http://$(hostname -I | awk '{print $1'}):9002"
 echo ""
