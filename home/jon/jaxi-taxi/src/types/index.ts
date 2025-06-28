@@ -4,7 +4,7 @@ export interface Song {
   src: string;
 }
 
-export type LightingEffect = 'solid' | 'bpm' | 'chase' | 'fireworks' | 'strobe' | 'pulse' | 'fade' | 'static';
+export type LightingEffect = string;
 
 export interface LightingConfig {
   color: string;

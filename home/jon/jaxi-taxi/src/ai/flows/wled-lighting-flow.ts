@@ -43,20 +43,26 @@ const prompt = ai.definePrompt({
   name: 'audioAnalysisLightingPrompt',
   input: {schema: AudioAnalysisLightingInputSchema},
   output: {schema: AudioAnalysisLightingOutputSchema},
-  prompt: `You are an AI DJ for a music-reactive LED system called Jaxi Taxi that controls WLED.
+  prompt: `You are an AI DJ for a music-reactive LED system that controls a 1D WLED light strip.
 Your task is to analyze an audio track and suggest a dynamic, multi-colored lighting configuration.
 
 Based on the provided audio, determine the following:
 1.  **Primary Color**: The main hex color that captures the song's primary emotion.
-2.  **Secondary Color**: A second hex color that contrasts or complements the primary, to be used in the effect.
+2.  **Secondary Color**: A second hex color that contrasts or complements the primary.
 3.  **Intensity**: Overall brightness from 0.0 (dim) to 1.0 (bright).
-4.  **Effect**: Choose the *best* effect from this specific list. You MUST choose one:
+4.  **Effect**: Choose the *best* effect from the list below. You MUST choose one of these names exactly. Your choice should reflect the song's energy, genre, and mood.
     *   'Solid': A static, solid color. Use for intros, outros, or very calm songs.
     *   'BPM': Pulses colors to the beat. Great for pop, rock, and electronic music.
-    *   'Chase': Colors chase each other down the strip.
+    *   'Chase Rainbow': Classic running rainbow effect, good for upbeat and fun tracks.
     *   'Fireworks': Bursts of random colors. Perfect for high-energy moments or celebratory songs.
-    *   'Strobe': A classic strobe effect. Use for high-energy dance or electronic tracks.
+    *   'Fire Flicker': Simulates a gentle, warm fire. Good for acoustic, folk, or ambient music.
+    *   'Meteor': A streak of light with a fading trail. Excellent for songs with sweeping sounds or arpeggios.
+    *   'Ripple': Creates a water-like ripple effect. Good for chill-out, lofi, or ambient tracks.
     *   'Lightning': Flashes of light. Use for dramatic moments or intense electronic music.
+    *   'Rainbow': Smoothly cycles through all colors along the strip. A versatile, classic effect.
+    *   'Dynamic': Shifts LEDs to random colors from the palette. A good general-purpose active effect.
+    *   'Scan': A dot of light moving back and forth. Good for synth-heavy or futuristic-sounding music.
+    *   'Strobe': Classic high-energy flashing effect for dance music or intense drops.
 5.  **Speed**: A value from 0 (slow) to 255 (fast), based on the song's tempo.
 6.  **Effect Intensity**: A value from 0 (subtle) to 255 (intense), based on the song's energy. A powerful rock anthem should be high, a soft ballad should be low.
 
@@ -93,14 +99,20 @@ const audioAnalysisLightingFlow = ai.defineFlow(
           };
           
           console.log('[Flow v4] Defining WLED effect map.');
-          // THIS IS THE CORRECT, VERIFIED MAP.
+          // Corrected map based on user-provided documentation.
           const effectMap: { [key: string]: number } = {
-            'solid': 0,
-            'bpm': 8,
-            'chase': 45,
-            'fireworks': 74,
-            'strobe': 106,
-            'lightning': 66
+              'solid': 0,
+              'dynamic': 7,
+              'rainbow': 9,
+              'scan': 10,
+              'strobe': 23,
+              'chase rainbow': 30,
+              'fireworks': 42,
+              'fire flicker': 45,
+              'lightning': 57,
+              'bpm': 68,
+              'meteor': 76,
+              'ripple': 79
           };
           console.log('[Flow v4] Effect map defined:', effectMap);
 
@@ -110,7 +122,7 @@ const audioAnalysisLightingFlow = ai.defineFlow(
           const effectId = effectMap[effectNameFromAI];
           console.log(`[Flow v4 Debug] Looked up effect ID: ${effectId}`);
 
-          const finalEffectId = effectId === undefined ? 0 : effectId;
+          const finalEffectId = effectId === undefined ? 0 : effectId; // Default to Solid
           console.log(`[Flow v4 Debug] Final Mapped WLED Effect ID: ${finalEffectId}`);
 
           const wledPayload = {
