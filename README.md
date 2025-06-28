@@ -107,4 +107,4 @@ If things aren't working as expected, follow these steps in order.
     *   `[Flow] WLED Payload: {"on":true,"bri":...}`
     *   `[Flow] Successfully sent command to WLED.`
 3.  **Verify the IP Address:** Double-check that the IP address in your `/home/jon/jaxi-taxi/.env` file is the correct one for your WLED device and includes the `http://` prefix.
-4.  **Check Network Connectivity:** On the Raspberry Pi, try to `ping <WLED_IP_ADDRESS>` (without the `http://`). If you get a response, the devices can see each other on the network. If not, there is a network issue (e.g., they are on different WiFi networks or a firewall is blocking them).
+4.  **Check Network Connectivity:** On the Raspberry Pi, try to `ping 192.168.1.123` (using your WLED IP and without the `http://`). If you get a response, the devices can see each other on the network. If not, there is a network issue (e.g., they are on different WiFi networks or a firewall is blocking them).
