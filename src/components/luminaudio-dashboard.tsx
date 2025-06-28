@@ -46,10 +46,14 @@ export function LuminaudioDashboard({ playlist }: LuminaudioDashboardProps) {
           audioDataUri,
           currentSettings: JSON.stringify({ defaultEffect: settings.defaultEffect }),
         });
+        
+        // The flow returns the full analysis. We map it to the LightingConfig for the UI.
         setLightingConfig({
-            ...result,
-            effect: result.effect.toLowerCase() as LightingEffect
+          color: result.primaryColor, // Use the primary color for the visualizer
+          intensity: result.intensity,
+          effect: result.effect.toLowerCase() as LightingEffect,
         });
+
         setIsAiAnalyzing(false);
       };
     } catch (error) {

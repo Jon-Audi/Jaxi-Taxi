@@ -141,15 +141,8 @@ const audioAnalysisLightingFlow = ai.defineFlow(
       }
     }
     
-    // We need to transform the AI output to fit the simpler LightingConfig for the UI visualizer
-    if (output) {
-        return {
-            ...output,
-            color: output.primaryColor, // The visualizer only shows one color, so we'll use the primary.
-            effect: output.effect.toLowerCase() as any // Ensure effect name is lowercase for CSS class
-        };
-    }
-
+    // Return the raw output from the AI.
+    // The calling component is responsible for adapting this for its own UI state.
     return output!;
   }
 );
