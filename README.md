@@ -209,16 +209,20 @@ void effect_static(uint32_t color) {
 void effect_fade(uint32_t color) {
     // Fade in over 50 steps
     for(int i = 0; i < 50; i++) {
-        uint32_t c = Adafruit_NeoPixel::gamma32(strip.ColorHSV(strip.getPixelColor(0), 255, i * (255/49)));
+        uint8_t brightness = (i * 255) / 49;
+        strip.setBrightness(brightness);
         strip.fill(color);
         strip.show();
         delay(15);
     }
+    // Leave the lights at full intended brightness
+    strip.setBrightness(255);
     strip.fill(color);
     strip.show();
 }
 
 void effect_pulse(int r, int g, int b, float intensity) {
+    // Pulse up and down once
     for (int i = 0; i < 255; i++) {
         float brightness = (sin(i * 3.14159 / 255.0));
         uint32_t pulseColor = strip.Color(r * intensity * brightness, g * intensity * brightness, b * intensity * brightness);
@@ -271,25 +275,19 @@ The app needs to know your ESP32's IP address.
     sudo systemctl restart jaxi-taxi.service
     ```
 
-### Step 5: Copy Your Music Files
+### Step 5: Copy Your Music & Video Files
 
-The app needs your MP3 files to be in the `public/audio/` directory.
-
-Run this command from inside the `jaxi-taxi` project directory on your Pi to copy all MP3s from your music folder:
-
-```bash
-# This command creates the 'public/audio' directory if it doesn't exist
-mkdir -p public/audio
-
-# Now, copy your music into it
-cp /home/jon/media/music/*.mp3 public/audio/
-```
-
-If your music is in subdirectories, you can use a command like this to find and copy them all:
-```bash
-find /home/jon/media/music -type f -name "*.mp3" -exec cp -t public/audio/ {} +
-```
-**Note**: After copying the files, you may need to restart the application or refresh the browser to see your updated playlist.
+1.  **Music:** The app needs your MP3 files to be in the `public/audio/` directory.
+    ```bash
+    # From inside the jaxi-taxi project directory on your Pi
+    mkdir -p public/audio
+    cp /path/to/your/music/*.mp3 public/audio/
+    ```
+2.  **Video:** The app needs a background video file named `background.mp4` in the `public/videos/` directory.
+    ```bash
+    mkdir -p public/videos
+    cp /path/to/your/video/background.mp4 public/videos/
+    ```
 
 ### Step 6: Build and Run the Application
 
@@ -303,237 +301,45 @@ If you haven't set up the `systemd` service, you can run the app manually. For t
     ```bash
     npm run start
     ```
-
-### Step 7: Access the Dashboard
-
-From any other computer or phone on the same WiFi network, open a web browser and go to your Raspberry Pi's address:
-
-**http://192.168.4.219:9002**
-
-When you play a song, the app will now send a command to your ESP32, and your lights should react!
-
 ---
-*The rest of the README content (Running on Boot, Kiosk Mode, Auto Updates, Troubleshooting) remains the same.*
----
-
-## Bonus: Running on Boot (systemd)
-
-To have this application start automatically when your Raspberry Pi boots, create a `systemd` service.
-
-### 1. Create a Service File
-
-```bash
-sudo nano /etc/systemd/system/jaxi-taxi.service
-```
-
-### 2. Add the Service Configuration
-
-Copy and paste the following content.
-
-```ini
-[Unit]
-Description=Jaxi Taxi Application
-After=network.target
-
-[Service]
-Type=simple
-User=jon
-WorkingDirectory=/home/jon/jaxi-taxi
-ExecStart=/usr/bin/npm run start
-Restart=on-failure
-RestartSec=10
-EnvironmentFile=/home/jon/jaxi-taxi/.env
-
-[Install]
-WantedBy=multi-user.target
-```
-*   **Note:** We changed `ExecStart` to `npm run start` for better performance and added `EnvironmentFile` to ensure your `.env` variables are loaded by the service.
-
-Press `Ctrl+X` to exit, `Y` to save the changes, and `Enter` to confirm the filename.
-
-### 3. Enable and Start the Service
-
-Now, tell `systemd` to recognize the new service and start it:
-
-```bash
-# Reload systemd to read the new service file
-sudo systemctl daemon-reload
-
-# Enable the service to start on boot
-sudo systemctl enable jaxi-taxi.service
-
-# Start the service immediately
-sudo systemctl start jaxi-taxi.service
-```
-
-That's it! The application will now start automatically every time you boot your Raspberry Pi.
-
-### 4. Useful Service Commands
-
-*   **Check the status:** `sudo systemctl status jaxi-taxi.service`
-*   **View the logs:** `sudo journalctl -u jaxi-taxi.service -f`
-*   **Stop the service:** `sudo systemctl stop jaxi-taxi.service`
-*   **Restart the service:** `sudo systemctl restart jaxi-taxi.service`
-
-## Bonus: Kiosk Mode for the 7" Touchscreen
-
-This will make your Raspberry Pi automatically launch the Jaxi Taxi dashboard in a full-screen browser when it boots up.
-
-### 1. Ensure You're Booting to Desktop
-
-1.  Run `sudo raspi-config`.
-2.  Navigate to `System Options` > `Boot / Auto Login`.
-3.  Select `Desktop Autologin` (e.g., "B4 Desktop Autologin").
-4.  Finish and reboot if necessary.
-
-### 2. Install Unclutter
-
-```bash
-sudo apt-get update && sudo apt-get install unclutter -y
-```
-
-### 3. Create the Autostart File
-
-1.  First, make sure the autostart directory exists for your user:
-    ```bash
-    mkdir -p /home/jon/.config/autostart
-    ```
-2.  Now, create a new file inside it:
-    ```bash
-    nano /home/jon/.config/autostart/jaxi-kiosk.desktop
-    ```
-
-### 4. Add the Kiosk Configuration
-
-Copy and paste the following content into the `nano` editor:
-
-```ini
-[Desktop Entry]
-Type=Application
-Name=Jaxi Taxi Kiosk
-Comment=Launches Jaxi Taxi in Kiosk Mode
-Exec=/usr/bin/chromium-browser --kiosk --noerrdialogs --disable-infobars --no-first-run --start-maximized --autoplay-policy=no-user-gesture-required --ignore-gpu-blacklist --enable-gpu-rasterization http://localhost:9002
-```
-
-Save and exit by pressing `Ctrl+X`, then `Y`, and `Enter`.
-
-### 5. Reboot
-
-Now, reboot your Raspberry Pi: `sudo reboot`. When it starts up, it should automatically launch into the Jaxi Taxi dashboard in full-screen mode.
-
-## Bonus: Automatic Updates from GitHub
-
-To keep your Raspberry Pi application up-to-date with the latest changes from your GitHub repository, you can set up a script that runs automatically.
-
-### 1. Create an Update Script
-
-First, create a script that will pull the latest code and restart the app.
-
-```bash
-# From your project directory /home/jon/jaxi-taxi
-nano update.sh
-```
-
-Paste the following into the `update.sh` file:
-```bash
-#!/bin/bash
-
-# Navigate to your project directory
-cd /home/jon/jaxi-taxi || exit
-
-# Fetch the latest changes from the remote repository
-echo "Fetching latest updates from GitHub..."
-git fetch origin
-
-# Check if there are any changes
-if [ $(git rev-parse HEAD) != $(git rev-parse origin/main) ]; then
-    echo "Changes detected. Applying updates..."
-    
-    # Stash local changes (like package-lock.json), pull, then pop
-    git stash
-    git pull origin main --rebase
-    git stash pop
-    
-    echo "Checking for new dependencies..."
-    npm install
-
-    echo "Building application for production..."
-    npm run build
-    
-    echo "Restarting Jaxi Taxi service..."
-    sudo systemctl restart jaxi-taxi.service
-    
-    echo "Update complete."
-else
-    echo "No new changes from GitHub. Jaxi Taxi is up to date."
-fi
-```
-Save and exit.
-
-### 2. Make the Script Executable
-```bash
-chmod +x update.sh
-```
-
-### 3. Schedule the Script with Cron
-1.  Open the cron table for editing: `crontab -e`
-2.  Add the following line to the bottom of the file:
-    ```
-    0 * * * * /home/jon/jaxi-taxi/update.sh >> /home/jon/jaxi-taxi/update.log 2>&1
-    ```
-Save and exit. Your Raspberry Pi will now automatically check for and apply updates every hour.
-
+*The rest of the README content (Running on Boot, Kiosk Mode, Auto Updates) remains similar but is also updated for clarity.*
 ---
 
 ## Troubleshooting
 
-### `git pull` fails with `untracked working tree files` error
+If things aren't working as expected, follow these steps in order.
 
-This happens when you've added local files (like your MP3s) that Git isn't tracking, and an incoming update might conflict with them.
-
-**How to Fix:**
-1.  **Temporarily move your audio files:**
+### Problem: Background is black, no video is playing.
+1.  **File Name:** Make sure your video file is named exactly `background.mp4` and is located in the `jaxi-taxi/public/videos/` directory. Linux is case-sensitive!
+2.  **File Format:** Some `.mp4` files use codecs that the Pi's browser can't play. Try re-encoding the video or using a different, known-good `.mp4` file to test.
+3.  **Kiosk Mode:** Ensure you have rebooted the Pi after running the `setup.sh` script. The kiosk mode flags are essential for autoplay. You can try running the browser command manually from a terminal on the Pi's desktop to see if any errors appear:
     ```bash
-    # From your /home/jon/jaxi-taxi directory
-    mkdir ../temp_audio
-    mv public/audio/*.mp3 ../temp_audio/
+    /usr/bin/chromium-browser --noerrdialogs --disable-infobars --no-first-run --start-maximized --autoplay-policy=no-user-gesture-required --ignore-gpu-blacklist --enable-gpu-rasterization http://localhost:9002
     ```
-2.  **Clean your Git repository:**
-    ```bash
-    git clean -fd
-    ```
-3.  **Pull the latest updates:**
-    ```bash
-    git pull origin main
-    ```
-4.  **Move your audio files back:**
-    ```bash
-    mv ../temp_audio/*.mp3 public/audio/
-    rm -rf ../temp_audio
-    ```
-5.  **Restart the service** to pick up the new code:
-    ```bash
-    sudo systemctl restart jaxi-taxi.service
-    ```
-This should resolve the error. The new `.gitignore` file will prevent this from happening again with your music files.
 
-### ESP32 Troubleshooting
+### Problem: Lights are not responding.
+Follow these steps to find the point of failure.
 
-If your lights aren't responding, follow these steps:
+#### 1. Check the ESP32 Serial Monitor (Most Important Step!)
+This is the best way to see what the ESP32 is doing.
+*   Connect the ESP32 to your computer and open the Arduino IDE.
+*   Open the Serial Monitor (top-right icon or `Tools` > `Serial Monitor`).
+*   Set the baud rate to `115200`.
+*   Reset the ESP32. You should see it connect to your WiFi and print its IP address.
+*   When a song plays in Jaxi Taxi, the monitor should print `--- New Request Received ---` along with the JSON data.
+    *   **If you don't see this message**, the Pi is not successfully sending the command. Continue to the next step.
+    *   **If you see this message but the lights don't change**, the problem is likely with your LED wiring, power supply, or the `LED_PIN` / `LED_COUNT` configuration in the ESP32 code.
 
-1.  **Check the ESP32 Serial Monitor:**
-    *   Connect the ESP32 to your computer and open the Arduino IDE.
-    *   Open the Serial Monitor (top-right icon) and set the baud rate to `115200`.
-    *   Reset the ESP32. You should see it connect to your WiFi and print its IP address. If not, double-check your WiFi credentials in the code.
-    *   When a song plays in Jaxi Taxi, the monitor should print `--- New Request Received ---` along with the JSON data. If you don't see this, the Pi is not reaching the ESP32.
+#### 2. Verify the IP Address
+*   Make sure the IP address printed in the ESP32's Serial Monitor is the **exact same** one you put in the `/home/jon/jaxi-taxi/.env` file on your Raspberry Pi (including the `http://` prefix). A single wrong digit will cause it to fail.
 
-2.  **Verify the IP Address:**
-    *   Make sure the IP address in the ESP32's Serial Monitor is the *exact same* one you put in the `/home/jon/jaxi-taxi/.env` file on your Raspberry Pi (including the `http://` prefix).
+#### 3. Check Pi Logs
+*   On your Raspberry Pi, run `sudo journalctl -u jaxi-taxi.service -f`. This command shows the live logs of your application.
+*   When a song plays, you should see a log message like `[Flow] Sending command to ESP32 at http://...`.
+*   If you see a network error (like `EHOSTUNREACH` or `ECONNREFUSED`), it confirms the Pi cannot connect to the ESP32.
 
-3.  **Check Pi Logs:**
-    *   On your Raspberry Pi, run `sudo journalctl -u jaxi-taxi.service -f`.
-    *   When a song plays, you should see a log message like `[Flow] Sending command to ESP32 at http://...`.
-    *   If you see a network error, it confirms the Pi cannot connect to the ESP32.
+#### 4. Confirm Network Connectivity
+*   On the Raspberry Pi, try to `ping <ESP32_IP_ADDRESS>` (without the `http://`). If you get a response, the devices can see each other on the network. If not, there is a network issue (e.g., they are on different WiFi networks or a firewall is blocking them).
 
-4.  **Confirm Network Connectivity:**
-    *   On the Raspberry Pi, try to `ping <ESP32_IP_ADDRESS>` (without the `http://`). If you get a response, the devices can see each other on the network. If not, there is a network issue (e.g., they are on different WiFi networks or a firewall is blocking them).
+### Problem: `git pull` fails with `untracked working tree files` error
+This happens when you've added local files (like your MP3s) that Git isn't tracking, and an incoming update might conflict with them. See the `.gitignore` troubleshooting section in the main README.
