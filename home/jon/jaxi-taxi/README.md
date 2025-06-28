@@ -20,7 +20,7 @@ For a fresh Raspberry Pi setup, you can use the automated installation script. T
 That's it! The script handles everything except the ESP32 setup below.
 
 ### ✨ Updating the Application
-To update the application to the latest version, you can simply run the same installation command again. The script will automatically fetch the newest code from GitHub, clear the application cache, and rebuild the app for you. Your local `.env` file will not be affected.
+To update the application to the latest version, you can simply run the same installation command again. The script will automatically fetch the newest code from GitHub, **clear all caches**, and rebuild the app for you. Your local `.env` file will not be affected.
 
 ---
 
@@ -99,9 +99,16 @@ The app needs to know your WLED device's IP address.
 If things aren't working as expected, follow these steps in order.
 
 ### Problem: My code changes don't seem to be applying.
-The app might be running an old, cached version. The setup script now clears this cache automatically, but if you update the code manually, you might need to do it yourself.
-1. **Force a Clean Build:** On your Pi, navigate to the `jaxi-taxi` directory and run `rm -rf .next` to delete the cache. Then restart the app with `sudo systemctl restart jaxi-taxi.service`.
-2. **Verify File Contents:** Make sure your changes were actually saved. You can view the contents of a file directly in the terminal. For example, to check the AI logic, run: `cat /home/jon/jaxi-taxi/src/ai/flows/audio-analysis-flow.ts`. The output should match the latest version of the code.
+This is the most common and frustrating issue, often caused by a stale cache.
+1. **Re-run the Setup Script:** The easiest way to fix this is to run the setup script again. It is now designed to aggressively clear all caches and ensure the latest code is built and run.
+   ```bash
+   bash <(curl -s https://raw.githubusercontent.com/Jon-Audi/Jaxi-Taxi/main/setup.sh)
+   ```
+2. **Verify File Contents MANUALLY:** After running the script, you can prove the changes have been applied. On your Pi, run this command to see the contents of the AI logic file:
+   ```bash
+   cat /home/jon/jaxi-taxi/src/ai/flows/audio-analysis-flow.ts
+   ```
+   The output should show a `effectMap` with `strobe: 106`. If you still see `strobe: 5` or something different, the update failed.
 
 ### Problem: Background is black, no video is playing.
 1.  **File Name:** Make sure your video file is named exactly `background.mp4` and is located in the `jaxi-taxi/public/videos/` directory. Linux is case-sensitive!
@@ -122,7 +129,7 @@ This is the most common issue and requires checking two things: the Pi's logs an
         [Flow] WLED Payload: {"on":true,"bri":...,"seg":[{"fx":106,...}]}
         [Flow] Successfully sent command to WLED.
         ```
-    *   **If you see `fx:5`**, it means the effect mapping failed and it's defaulting to "Random Colors". Ensure your `audio-analysis-flow.ts` file is up to date by re-running the setup script.
+    *   **If you see `fx:5`**, it means the effect mapping failed and it's defaulting to "Random Colors". Ensure your `audio-analysis-flow.ts` file is up to date by following the "My code changes don't seem to be applying" section above.
     *   **If you see a `FetchError` or `Failed to send command`**, it means the Pi cannot reach the WLED device. Continue to the next step.
 
 2.  **Check WLED Manually:**

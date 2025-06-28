@@ -94,7 +94,7 @@ const audioAnalysisLightingFlow = ai.defineFlow(
             'bpm': 8,
             'chase': 45,
             'fireworks': 74,
-            'strobe': 106, // The correct ID for Strobe
+            'strobe': 106,
             'lightning': 66
           };
 

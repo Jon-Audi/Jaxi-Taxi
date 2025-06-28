@@ -34,7 +34,6 @@ if [ -d "$APP_DIR" ]; then
     # Ensure the user owns the directory to avoid git permission errors
     sudo chown -R $USER:$USER "$APP_DIR"
     
-    # Fetch the latest code from the main branch
     echo "Fetching latest changes from GitHub..."
     git fetch origin main
     
@@ -42,6 +41,9 @@ if [ -d "$APP_DIR" ]; then
     # This will overwrite any local changes to tracked files. Your .env file will be preserved.
     echo "Applying updates..."
     git reset --hard origin/main
+
+    echo "Force-cleaning the directory to remove old files..."
+    git clean -dfx
 
 else
     echo "Cloning repository into $APP_DIR..."
@@ -57,11 +59,14 @@ fi
 cd "$APP_DIR" || exit
 
 # --- Step 3: Install Project Dependencies ---
+echo "Clearing npm cache..."
+npm cache clean --force
+
 echo "Installing Node.js packages..."
 # Run npm install as the correct user.
 npm install
 
-echo "Clearing application cache to ensure fresh build..."
+echo "Clearing application build cache to ensure fresh build..."
 rm -rf .next
 
 echo "Building application for production..."
@@ -100,7 +105,7 @@ EOL
 echo "Enabling and starting the service..."
 sudo systemctl daemon-reload
 sudo systemctl enable jaxi-taxi.service
-sudo systemctl start jaxi-taxi.service
+sudo systemctl restart jaxi-taxi.service
 
 
 # --- Step 6: Set up Kiosk Mode (Autostart GUI) ---
