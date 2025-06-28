@@ -109,21 +109,21 @@ This is the most common and frustrating issue, often caused by a stale cache on 
    ```bash
    cat /home/jon/jaxi-taxi/src/ai/flows/wled-lighting-flow.ts
    ```
-   The very first line of the output **MUST** be `// VERSION: 5 - CORRECT EFFECT MAP & VARIETY PROMPT`. If you see an older version number or something different, it means the `setup.sh` script is failing to pull the latest code from GitHub.
+   The very first line of the output **MUST** be `// VERSION: 6 - CORRECT EFFECT MAP & VARIETY PROMPT`. If you see an older version number or something different, it means the `setup.sh` script is failing to pull the latest code from GitHub.
 
 ### Problem: Lights are not responding or are stuck on one pattern.
 1.  **Check Pi Logs (Jaxi Taxi App):**
     *   On your Raspberry Pi, run `sudo journalctl -u jaxi-taxi.service -f`. This command shows the live logs of your application.
     *   When a song starts, you should now see verbose logs like this:
         ```
-        [Flow v5] Entering audioAnalysisLighting function.
+        [Flow v6] Entering audioAnalysisLighting function.
         ...
-        [Flow v5] AI suggested lighting: { primaryColor: '#...', secondaryColor: '#...', ... }
-        [Flow v5 Debug] AI effect name (lowercase): "fireworks"
-        [Flow v5 Debug] Final Mapped WLED Effect ID: 42
+        [Flow v6] AI suggested lighting: { primaryColor: '#...', secondaryColor: '#...', ... }
+        [Flow v6 Debug] AI effect name (lowercase): "fireworks"
+        [Flow v6 Debug] Final Mapped WLED Effect ID: 42
         ...
-        [Flow v5] WLED Payload: {"on":true,"bri":...,"seg":[{"fx":42,...}]}
-        [Flow v5] Successfully sent command to WLED.
+        [Flow v6] WLED Payload: {"on":true,"bri":...,"seg":[{"fx":42,...}]}
+        [Flow v6] Successfully sent command to WLED.
         ```
     *   **If you see an incorrect `fx` ID**, it means you are running old, cached code. See the "My code changes don't seem to be applying" section above.
     *   **If you see a `FetchError` or `Failed to send command`**, it means the Pi cannot reach the WLED device. Continue to the next step.
@@ -142,3 +142,11 @@ This is the most common and frustrating issue, often caused by a stale cache on 
 1.  **File Name:** Make sure your video file is named exactly `background.mp4` and is located in the `jaxi-taxi/public/videos/` directory. Linux is case-sensitive!
 2.  **File Format:** Some `.mp4` files use codecs that the Pi's browser can't play. Try re-encoding the video or using a different, known-good `.mp4` file to test.
 3.  **Kiosk Mode:** Ensure you have rebooted the Pi after running the `setup.sh` script. The kiosk mode flags are essential for autoplay.
+
+### Problem: "This site can't be reached" / localhost refused to connect
+This means the main application server failed to start.
+1.  **Check the logs for startup errors:** Run `sudo journalctl -u jaxi-taxi.service` (without the `-f`). This shows you the full log from the last time the service tried to start. Look for any `ERROR` messages right at the beginning.
+2.  **Re-run the setup script:** The most common cause is a failed build, which the latest `setup.sh` script should prevent. Run the script again and watch its output carefully. If it reports an `ERROR`, the build failed and the problem is with the code itself.
+   ```bash
+   bash <(curl -s https://raw.githubusercontent.com/Jon-Audi/Jaxi-Taxi/main/setup.sh)
+   ```
