@@ -44,7 +44,7 @@ export function LuminaudioDashboard({ playlist }: LuminaudioDashboardProps) {
         const audioDataUri = reader.result as string;
         const result = await audioAnalysisLighting({
           audioDataUri,
-          currentSettings: JSON.stringify({ defaultEffect: settings.defaultEffect }),
+          currentSettings: JSON.stringify(lightingConfig), // Pass the previous config for context
         });
         
         // The flow returns the full analysis. We map it to the LightingConfig for the UI.
@@ -70,7 +70,7 @@ export function LuminaudioDashboard({ playlist }: LuminaudioDashboardProps) {
       });
       setIsAiAnalyzing(false);
     }
-  }, [settings.defaultEffect, toast]);
+  }, [settings.defaultEffect, toast, lightingConfig]);
 
   useEffect(() => {
     if (playlist.length > 0) {
@@ -78,7 +78,8 @@ export function LuminaudioDashboard({ playlist }: LuminaudioDashboardProps) {
     } else {
         setIsAiAnalyzing(false);
     }
-  }, [currentSongIndex, playlist, handleAiAnalysis]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSongIndex, playlist]); // handleAiAnalysis is now stable enough to be a dependency, but we only want to trigger on song change.
   
   const handleNextSong = useCallback(() => {
     if (playlist.length > 0) {

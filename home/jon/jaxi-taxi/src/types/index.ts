@@ -4,6 +4,7 @@ export interface Song {
   src: string;
 }
 
+// This needs to be a generic string to allow for any effect name from the AI.
 export type LightingEffect = string;
 
 export interface LightingConfig {
