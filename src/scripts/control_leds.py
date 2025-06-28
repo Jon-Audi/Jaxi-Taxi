@@ -7,7 +7,7 @@ import math
 
 # --- Configuration ---
 # You will likely need to change these values to match your setup.
-LED_COUNT = 50  # The number of LED pixels on your strip.
+LED_COUNT = 60  # The number of LED pixels on your strip.
 LED_PIN = board.D18  # GPIO pin connected to the pixels (must support PWM).
 LED_BRIGHTNESS = 0.5 # Default brightness (0.0 to 1.0)
 # For WS2812B, the pixel order is usually GRB.

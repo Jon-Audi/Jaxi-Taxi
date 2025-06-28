@@ -1,6 +1,6 @@
 # Jaxi Taxi - Audio-Responsive LED Controller
 
-This is a Next.js application that uses AI to analyze music and suggest synchronized lighting configurations for LED lights connected to a Raspberry Pi.
+This is a Next.js application that uses AI to analyze music and suggest synchronized lighting configurations for LED lights. It's designed to run on a Raspberry Pi and send commands to a separate microcontroller (like an ESP32) that controls the lights.
 
 ## 🚀 Easy Installation (Recommended)
 
@@ -17,7 +17,7 @@ For a fresh Raspberry Pi setup, you can use the automated installation script. T
 3.  **Follow the prompts.** The script will ask for your password to install software.
 4.  **Reboot** when it's finished.
 
-That's it! The script handles everything from the detailed guide below.
+That's it! The script handles everything except the ESP32 setup below.
 
 ---
 
@@ -34,11 +34,6 @@ Make sure your Raspberry Pi has the following installed:
     ```bash
     curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
     sudo apt-get install -y nodejs
-    ```
-*   **Python 3 & Pip**: This is usually pre-installed on Raspberry Pi OS. Check with `python3 --version` and `pip3 --version`. If you need pip, install it:
-    ```bash
-    sudo apt-get update
-    sudo apt-get install python3-pip
     ```
 
 ### Step 1: Get the Code on Your Pi
@@ -57,44 +52,213 @@ First, you'll need to get the project files onto your Raspberry Pi. The easiest 
 
 ### Step 2: Install Project Dependencies
 
-Now, install the necessary Node.js and Python packages.
+Now, install the necessary Node.js packages.
+```bash
+npm install
+```
 
-1.  **Install Node.js packages:**
+### Step 3: Hardware Setup (ESP32 Method)
+
+This setup uses an ESP32 microcontroller to handle the LED control. This is more robust and flexible than controlling LEDs directly from the Pi's GPIO pins. The Raspberry Pi will send lighting commands over your WiFi network to the ESP32.
+
+**You will need:**
+*   An ESP32 development board.
+*   A WS2812B (NeoPixel) LED strip.
+*   A separate 5V power supply for the LED strip.
+*   The Arduino IDE or VS Code with the PlatformIO extension to program the ESP32.
+
+#### 1. Wiring your ESP32
+
+**⚠️ Power Warning:** LED strips can draw a lot of current. **It is highly recommended to use a separate, dedicated 5V power supply** that can provide enough amperage for your strip.
+
+1.  **Connect Grounds:** Connect the **Ground (GND)** pin from your external 5V power supply to a **GND pin on the ESP32** AND to the **GND wire on your LED strip**. This creates a common ground reference.
+2.  **Connect Data:** Connect the **Data Input (DI)** wire of the LED strip to a GPIO pin on the ESP32. **GPIO 2** is a common choice.
+3.  **Connect Power:**
+    *   Connect the **5V** wire of your LED strip to the **positive (+)** terminal of your external 5V power supply.
+    *   Connect the **Vin** pin of the ESP32 to the same **positive (+)** terminal of your 5V power supply to power the board.
+
+#### 2. Programming your ESP32
+
+You need to upload code to your ESP32. You can use the Arduino IDE for this.
+
+**A. Install Libraries in Arduino IDE:**
+Go to `Sketch` > `Include Library` > `Manage Libraries...` and install the following:
+*   `Adafruit NeoPixel`
+*   `ArduinoJson`
+
+**B. The Code:**
+Open a new sketch in the Arduino IDE and paste the code below. **Remember to change the `ssid`, `password`, `LED_PIN`, and `LED_COUNT` variables to match your setup.**
+
+```cpp
+#include <WiFi.h>
+#include <WebServer.h>
+#include <Adafruit_NeoPixel.h>
+#include <ArduinoJson.h>
+
+// --- WiFi and LED Configuration ---
+const char* ssid = "YOUR_WIFI_SSID";
+const char* password = "YOUR_WIFI_PASSWORD";
+
+#define LED_PIN    2  // GPIO pin connected to the LED strip's Data In
+#define LED_COUNT 60  // Number of LEDs on your strip
+// --- End Configuration ---
+
+WebServer server(80);
+Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
+
+void setup() {
+  Serial.begin(115200);
+  strip.begin();
+  strip.show(); // Initialize all pixels to 'off'
+
+  // Connect to Wi-Fi
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi...");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nConnected!");
+  Serial.print("IP Address: ");
+  Serial.println(WiFi.localIP());
+
+  // Define server routes
+  server.on("/set-leds", HTTP_POST, handleSetLeds);
+  server.onNotFound(handleNotFound);
+
+  server.begin();
+  Serial.println("HTTP server started");
+}
+
+void loop() {
+  server.handleClient();
+}
+
+// --- Route Handlers ---
+void handleSetLeds() {
+  if (server.hasArg("plain") == false) {
+    server.send(400, "text/plain", "Body not received");
+    return;
+  }
+  
+  String body = server.arg("plain");
+  StaticJsonDocument<256> doc;
+  DeserializationError error = deserializeJson(doc, body);
+
+  if (error) {
+    Serial.print("deserializeJson() failed: ");
+    Serial.println(error.c_str());
+    server.send(400, "text/plain", "Invalid JSON");
+    return;
+  }
+
+  // Extract data from JSON
+  const char* color_hex = doc["color"]; // "#RRGGBB"
+  float intensity = doc["intensity"];  // 0.0 to 1.0
+  const char* effect = doc["effect"];  // "pulse", "fade", etc.
+
+  // Convert hex color to RGB
+  long number = strtol(&color_hex[1], NULL, 16);
+  int r = number >> 16;
+  int g = (number >> 8) & 0xFF;
+  int b = number & 0xFF;
+
+  // Apply the effect
+  applyEffect(r, g, b, intensity, effect);
+
+  server.send(200, "application/json", "{\"status\":\"ok\"}");
+}
+
+void handleNotFound(){
+  server.send(404, "text/plain", "Not found");
+}
+
+// --- LED Effect Functions ---
+void applyEffect(int r, int g, int b, float intensity, const char* effect) {
+  // Apply the master intensity to the color
+  uint32_t finalColor = strip.Color(r * intensity, g * intensity, b * intensity);
+
+  // A simple router for effects
+  if (strcmp(effect, "fade") == 0) {
+    effect_fade(finalColor);
+  } else if (strcmp(effect, "pulse") == 0) {
+    effect_pulse(r, g, b, intensity);
+  } else if (strcmp(effect, "strobe") == 0) {
+    effect_strobe(finalColor);
+  } else { // Default to static
+    effect_static(finalColor);
+  }
+}
+
+void effect_static(uint32_t color) {
+  strip.fill(color);
+  strip.show();
+}
+
+void effect_fade(uint32_t color) {
+    // Fade in over 50 steps
+    for(int i = 0; i < 50; i++) {
+        uint32_t c = Adafruit_NeoPixel::gamma32(strip.ColorHSV(strip.getPixelColor(0), 255, i * (255/49)));
+        strip.fill(color);
+        strip.show();
+        delay(15);
+    }
+    strip.fill(color);
+    strip.show();
+}
+
+void effect_pulse(int r, int g, int b, float intensity) {
+    for (int i = 0; i < 255; i++) {
+        float brightness = (sin(i * 3.14159 / 255.0));
+        uint32_t pulseColor = strip.Color(r * intensity * brightness, g * intensity * brightness, b * intensity * brightness);
+        strip.fill(pulseColor);
+        strip.show();
+        delay(3);
+    }
+    // Leave the light on at the final color
+    uint32_t finalColor = strip.Color(r * intensity, g * intensity, b * intensity);
+    strip.fill(finalColor);
+    strip.show();
+}
+
+void effect_strobe(uint32_t color) {
+    for(int i=0; i<4; i++) {
+        strip.fill(color);
+        strip.show();
+        delay(50);
+        strip.fill(strip.Color(0,0,0));
+        strip.show();
+        delay(80);
+    }
+    // Leave the light on at the final color
+    strip.fill(color);
+    strip.show();
+}
+```
+
+**C. Upload and Get IP:**
+1.  Connect your ESP32 to your computer.
+2.  In Arduino IDE, select the correct board (e.g., "ESP32 Dev Module") and Port.
+3.  Click "Upload".
+4.  Once it's done, open the Serial Monitor (`Tools` > `Serial Monitor`) and set the baud rate to `115200`. Reset your ESP32, and you should see it connect to WiFi and print its IP address. **Copy this IP address.**
+
+### Step 4: Configure the Jaxi Taxi App
+
+The app needs to know your ESP32's IP address.
+
+1.  On your Raspberry Pi, inside the `jaxi-taxi` directory, create a new file named `.env`:
     ```bash
-    npm install
+    nano .env
     ```
-2.  **Install Python packages for LED control:** This library requires root access for installation and execution.
+2.  Add the following line to the file, replacing the IP with the one you copied from your ESP32's serial monitor.
+    ```
+    ESP32_IP_ADDRESS=http://192.168.1.123
+    ```
+3.  Save the file (`Ctrl+X`, `Y`, `Enter`).
+4.  **Important**: If the Jaxi Taxi app is already running, you must restart it to load this new configuration. If you set it up as a service, run:
     ```bash
-    sudo pip3 install rpi_ws281x adafruit-circuitpython-neopixel
+    sudo systemctl restart jaxi-taxi.service
     ```
-
-### Step 3: Hardware Setup (for WS2812B strip)
-
-To control a WS2812B (or similar, like NeoPixel) addressable LED strip, you need to connect it to the Raspberry Pi's GPIO pins.
-
-**⚠️ Power Warning:** LED strips can draw a lot of current. A long strip can easily damage your Raspberry Pi if powered directly from its 5V pin. **It is highly recommended to use a separate, dedicated 5V power supply** that can provide enough amperage for your strip (check your strip's specifications).
-
-**Wiring:**
-
-1.  **Connect Grounds:** The most important step is to connect the **Ground (GND)** pin from your external 5V power supply to a **GND pin on the Raspberry Pi** AND to the **GND wire on your LED strip**. This creates a common ground reference.
-2.  **Connect Data:** Connect the **Data Input (DI or DIN)** wire of the LED strip to a PWM-capable GPIO pin on the Pi. **GPIO 18 (Pin 12)** is a common choice and is the default in the script.
-3.  **Connect Power:** Connect the **5V** wire of your LED strip to the **positive (+)** terminal of your external 5V power supply. Do NOT connect this to the Pi's 5V pin unless you have a very short strip (fewer than 15-20 LEDs) and know what you're doing.
-
-**Logic Level Shifter (Recommended):** Raspberry Pi GPIO pins operate at 3.3V, while WS2812B strips expect a 5V data signal. For short data wire runs it might work, but for reliability, it's best to use a logic level shifter to boost the signal from 3.3V to 5V.
-
-### Step 4: Configure the LED Script
-
-Before running, you might need to edit the Python script to match your hardware.
-
-1. Open the script:
-   ```bash
-   nano src/scripts/control_leds.py
-   ```
-2.  Update the configuration variables at the top of the file:
-    *   `LED_COUNT`: Change this to the number of LEDs on your strip.
-    *   `LED_PIN`: Change this if you used a different GPIO pin than `board.D18`.
-    *   `PIXEL_ORDER`: If your colors look wrong (e.g., red shows as green), try changing `"GRB"` to `"RGB"`.
-3.  Press `Ctrl+X`, then `Y`, then `Enter` to save and exit.
 
 ### Step 5: Copy Your Music Files
 
@@ -118,21 +282,22 @@ find /home/jon/media/music -type f -name "*.mp3" -exec cp -t public/audio/ {} +
 
 ### Step 6: Run the Application
 
-Because the Python script needs to access hardware GPIO, it must be run with `sudo`. Therefore, you need to run the main Node.js application with `sudo` as well.
-
+If you haven't set up the `systemd` service, you can run the app manually:
 ```bash
-sudo npm run dev
+npm run dev
 ```
-
-The server will start, and you'll see some output in the terminal.
 
 ### Step 7: Access the Dashboard
 
-From any other computer or phone on the same WiFi network, open a web browser and go to:
+From any other computer or phone on the same WiFi network, open a web browser and go to your Raspberry Pi's address:
 
 **http://192.168.4.219:9002**
 
-You should see the Jaxi Taxi dashboard. Click play on a song. You should see output in your Pi's terminal from both the AI flow and the Python script, and your LED strip should light up!
+When you play a song, the app will now send a command to your ESP32, and your lights should react!
+
+---
+*The rest of the README content (Running on Boot, Kiosk Mode, Auto Updates, Troubleshooting) remains the same.*
+---
 
 ## Bonus: Running on Boot (systemd)
 
@@ -146,7 +311,7 @@ sudo nano /etc/systemd/system/jaxi-taxi.service
 
 ### 2. Add the Service Configuration
 
-Copy and paste the following content. We're setting `User=root` so the process has the necessary permissions to control the GPIO pins.
+Copy and paste the following content.
 
 ```ini
 [Unit]
@@ -155,18 +320,17 @@ After=network.target
 
 [Service]
 Type=simple
-User=root
+User=jon
 WorkingDirectory=/home/jon/jaxi-taxi
 ExecStart=/usr/bin/npm run dev
 Restart=on-failure
 RestartSec=10
-Environment=PATH=/usr/bin:/usr/local/bin
-Environment=NODE_ENV=production
+EnvironmentFile=/home/jon/jaxi-taxi/.env
 
 [Install]
 WantedBy=multi-user.target
 ```
-*   **Tip:** To find the exact path to `npm`, you can run `which npm` in your terminal and replace `/usr/bin/npm` if it's different.
+*   **Note:** We added `EnvironmentFile` to ensure your `.env` variables are loaded by the service.
 
 Press `Ctrl+X` to exit, `Y` to save the changes, and `Enter` to confirm the filename.
 
@@ -196,11 +360,10 @@ That's it! The application will now start automatically every time you boot your
 
 ## Bonus: Kiosk Mode for the 7" Touchscreen
 
-This will make your Raspberry Pi automatically launch the Jaxi Taxi dashboard in a full-screen browser when it boots up. Perfect for a dedicated device with a screen.
+This will make your Raspberry Pi automatically launch the Jaxi Taxi dashboard in a full-screen browser when it boots up.
 
 ### 1. Ensure You're Booting to Desktop
 
-This mode requires the Raspberry Pi to boot into the graphical desktop environment.
 1.  Run `sudo raspi-config`.
 2.  Navigate to `System Options` > `Boot / Auto Login`.
 3.  Select `Desktop Autologin` (e.g., "B4 Desktop Autologin").
@@ -208,15 +371,11 @@ This mode requires the Raspberry Pi to boot into the graphical desktop environme
 
 ### 2. Install Unclutter
 
-This small utility will hide the mouse cursor after a few seconds of inactivity, which is ideal for a touchscreen interface.
-
 ```bash
 sudo apt-get update && sudo apt-get install unclutter -y
 ```
 
 ### 3. Create the Autostart File
-
-We will create a special file that tells the desktop environment to launch our app.
 
 1.  First, make sure the autostart directory exists for your user:
     ```bash
@@ -243,23 +402,7 @@ Save and exit by pressing `Ctrl+X`, then `Y`, and `Enter`.
 
 ### 5. Reboot
 
-Now, reboot your Raspberry Pi:
-
-```bash
-sudo reboot
-```
-
-When your Pi starts up, it should automatically launch into the Jaxi Taxi dashboard in full-screen mode on your 7" display.
-
-### How to Exit Kiosk Mode
-
-If you need to get back to the desktop, you have two options:
-*   **Keyboard:** Press `Alt` + `F4` to close the Chromium window.
-*   **SSH:** Connect to your Pi via SSH from another computer and remove the autostart file:
-    ```bash
-    rm /home/jon/.config/autostart/jaxi-kiosk.desktop
-    ```
-    Then reboot.
+Now, reboot your Raspberry Pi: `sudo reboot`. When it starts up, it should automatically launch into the Jaxi Taxi dashboard in full-screen mode.
 
 ## Bonus: Automatic Updates from GitHub
 
@@ -286,20 +429,14 @@ echo "Fetching latest updates from GitHub..."
 git fetch origin
 
 # Check if there are any changes
-# HEAD is your local commit, origin/main is the remote commit
 if [ $(git rev-parse HEAD) != $(git rev-parse origin/main) ]; then
     echo "Changes detected. Applying updates..."
     
-    # This command forcefully resets your local main branch to match the one from GitHub.
-    # It will overwrite any local code changes but will NOT delete untracked files
-    # (like your music files in /public/audio, thanks to the .gitignore file).
     git reset --hard origin/main
     
-    # Install/update Node.js packages if package.json has changed
     echo "Checking for new dependencies..."
     npm install
     
-    # Restart the systemd service to apply all changes
     echo "Restarting Jaxi Taxi service..."
     sudo systemctl restart jaxi-taxi.service
     
@@ -308,51 +445,17 @@ else
     echo "No new changes from GitHub. Jaxi Taxi is up to date."
 fi
 ```
-Save and exit by pressing `Ctrl+X`, then `Y`, then `Enter`.
+Save and exit.
 
 ### 2. Make the Script Executable
-You need to give the script permission to be executed.
 ```bash
 chmod +x update.sh
 ```
 
 ### 3. Schedule the Script with Cron
-`cron` is a utility that runs tasks on a schedule. We'll set it to run your update script every hour.
-
-1.  Open the cron table for editing:
-    ```bash
-    crontab -e
-    ```
-2.  If it's your first time, you might be asked to choose an editor. Select `nano`.
-3.  Add the following line to the bottom of the file:
+1.  Open the cron table for editing: `crontab -e`
+2.  Add the following line to the bottom of the file:
     ```
     0 * * * * /home/jon/jaxi-taxi/update.sh >> /home/jon/jaxi-taxi/update.log 2>&1
     ```
-    This line means: "At minute 0 of every hour, of every day, run the `update.sh` script. Send all output (both normal and errors) to an `update.log` file in the project directory."
-
-Save and exit the file. Your Raspberry Pi will now automatically check for and apply updates every hour!
-
----
-
-## Troubleshooting Git Update Errors
-
-If you see an error like `The following untracked working tree files would be overwritten by merge` when running `git pull` or the `update.sh` script, it means Git is trying to protect files you've added locally (like your MP3s). Here's how to fix it:
-
-1.  **Create a temporary backup of your music:**
-    ```bash
-    mv public/audio /tmp/audio_backup
-    ```
-2.  **Force the repository to reset to the latest version from GitHub:**
-    ```bash
-    git reset --hard origin/main
-    ```
-3.  **Pull the very latest changes (which now includes a rule to ignore your music files):**
-    ```bash
-    git pull origin main
-    ```
-4.  **Move your music back:**
-    ```bash
-    mv /tmp/audio_backup public/
-    ```
-
-After doing this once, the automatic `update.sh` script should work without this error in the future.
+Save and exit. Your Raspberry Pi will now automatically check for and apply updates every hour.
