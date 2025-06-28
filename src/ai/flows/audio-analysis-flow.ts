@@ -63,29 +63,61 @@ const audioAnalysisLightingFlow = ai.defineFlow(
     if (output) {
       console.log(`[Flow] AI suggested lighting:`, output);
       
-      const esp32Ip = process.env.ESP32_IP_ADDRESS;
+      const wledIp = process.env.ESP32_IP_ADDRESS;
       
-      if (!esp32Ip) {
-        console.warn("[Flow Warning] ESP32_IP_ADDRESS environment variable is not set. Skipping hardware command. The visualizer will still work.");
+      if (!wledIp) {
+        console.warn("[Flow Warning] ESP32_IP_ADDRESS (for WLED) environment variable is not set. Skipping hardware command. The visualizer will still work.");
       } else {
         try {
-          console.log(`[Flow] Sending command to ESP32 at ${esp32Ip}...`);
-          const response = await fetch(`${esp32Ip}/set-leds`, {
+          // --- WLED Integration Logic ---
+
+          // 1. Convert hex color to RGB array
+          const hexToRgb = (hex: string): [number, number, number] => {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : [255, 255, 255];
+          };
+
+          // 2. Map AI effect names to WLED effect IDs
+          const effectMap: { [key: string]: number } = {
+            'static': 0,
+            'strobe': 5,
+            'fade': 4,
+            'pulse': 8, // Mapping 'pulse' to WLED's 'BPM' effect
+          };
+          const effectId = effectMap[output.effect.toLowerCase()] || 0; // Default to 'Static'
+
+          // 3. Construct the WLED JSON payload
+          const wledPayload = {
+            on: true,
+            bri: Math.round(output.intensity * 255), // Convert intensity (0-1.0) to brightness (0-255)
+            seg: [{
+              col: [hexToRgb(output.color)],
+              fx: effectId
+            }]
+          };
+
+          console.log(`[Flow] Sending command to WLED at ${wledIp}...`);
+          console.log(`[Flow] WLED Payload:`, JSON.stringify(wledPayload));
+
+          // The WLED API endpoint is /json/state
+          const wledUrl = `${wledIp.replace(/\/$/, '')}/json/state`;
+          
+          const response = await fetch(wledUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify(output),
+            body: JSON.stringify(wledPayload),
           });
 
           if (!response.ok) {
             const errorText = await response.text();
-            console.error(`[Flow Error] Failed to send command to ESP32: ${response.status} ${response.statusText}`, errorText);
+            console.error(`[Flow Error] Failed to send command to WLED: ${response.status} ${response.statusText}`, errorText);
           } else {
-            console.log('[Flow] Successfully sent command to ESP32.');
+            console.log('[Flow] Successfully sent command to WLED.');
           }
         } catch (error) {
-          console.error('[Flow Error] Network error sending request to ESP32. Is the device online and the IP correct?', error);
+          console.error('[Flow Error] Network error sending request to WLED. Is the device online and the IP correct?', error);
         }
       }
     }
