@@ -29,9 +29,22 @@ fi
 
 # --- Step 2: Clone or Update the Repository ---
 if [ -d "$APP_DIR" ]; then
-    echo "Application directory already exists. Taking ownership to ensure permissions are correct."
-    # Ensure the current user owns the directory, in case it was created by root before.
+    echo "Application directory already exists. Updating to the latest version..."
+    cd "$APP_DIR"
+    # Ensure the user owns the directory to avoid git permission errors
     sudo chown -R $USER:$USER "$APP_DIR"
+    
+    echo "Fetching latest changes from GitHub..."
+    git fetch origin main
+    
+    # Reset the local repository to match the remote version.
+    # This will overwrite any local changes to tracked files. Your .env file will be preserved.
+    echo "Applying updates..."
+    git reset --hard origin/main
+
+    echo "Force-cleaning the directory to remove old files..."
+    git clean -dfx
+
 else
     echo "Cloning repository into $APP_DIR..."
     git clone "$REPO_URL" "$APP_DIR"
@@ -45,13 +58,18 @@ fi
 
 cd "$APP_DIR" || exit
 
-# --- Step 3: Install Project Dependencies ---
-echo "Installing Node.js packages..."
-# Run npm install as the correct user.
-npm install
-
-echo "Clearing application cache to ensure fresh build..."
+# --- Step 3: AGGRESSIVE CACHE CLEANING & Dependency Installation ---
+echo "--- Starting Aggressive Clean and Rebuild ---"
+echo "Removing old build artifacts and dependencies..."
+rm -f package-lock.json
+rm -rf node_modules
 rm -rf .next
+
+echo "Clearing npm cache..."
+npm cache clean --force
+
+echo "Re-installing Node.js packages from scratch..."
+npm install
 
 echo "Building application for production..."
 npm run build
@@ -89,7 +107,7 @@ EOL
 echo "Enabling and starting the service..."
 sudo systemctl daemon-reload
 sudo systemctl enable jaxi-taxi.service
-sudo systemctl start jaxi-taxi.service
+sudo systemctl restart jaxi-taxi.service
 
 
 # --- Step 6: Set up Kiosk Mode (Autostart GUI) ---
@@ -117,7 +135,7 @@ echo ""
 echo "--- Setup Complete! ---"
 echo ""
 echo "The application is now running and will start automatically on boot."
-echo "If this was a re-run, some services may have been restarted."
+echo "If this was a re-run, services were restarted with the latest code after an aggressive cache clean."
 echo ""
 echo "IMPORTANT NEXT STEPS:"
 echo "1. Create the .env file if your app needs it (e.g., for the ESP32 IP address)."
