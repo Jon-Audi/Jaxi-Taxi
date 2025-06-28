@@ -15,10 +15,11 @@ echo "--- Starting Jaxi Taxi Setup ---"
 # --- Step 1: Install System Dependencies ---
 echo "Updating package lists and installing dependencies (git, nodejs, unclutter)..."
 sudo apt-get update
-sudo apt-get install -y git nodejs npm unclutter
+# DO NOT install 'npm' via apt, as the 'nodejs' package from NodeSource includes it, and installing it separately causes conflicts.
+sudo apt-get install -y git nodejs unclutter
 
 # Install Node.js v20 if not present or version is too old
-# (This is more robust than the simple apt-get install)
+# (This is a more robust check and installation method)
 if ! command -v node >/dev/null || [[ $(node -v | cut -d'.' -f1) != "v20" ]]; then
     echo "Installing Node.js v20..."
     curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
@@ -26,9 +27,11 @@ if ! command -v node >/dev/null || [[ $(node -v | cut -d'.' -f1) != "v20" ]]; th
 fi
 
 
-# --- Step 2: Clone the Repository ---
+# --- Step 2: Clone or Update the Repository ---
 if [ -d "$APP_DIR" ]; then
-    echo "Application directory already exists. Skipping clone."
+    echo "Application directory already exists. Taking ownership to ensure permissions are correct."
+    # Ensure the current user owns the directory, in case it was created by root before.
+    sudo chown -R $USER:$USER "$APP_DIR"
 else
     echo "Cloning repository into $APP_DIR..."
     git clone "$REPO_URL" "$APP_DIR"
@@ -36,19 +39,22 @@ else
         echo "Error: Failed to clone repository. Please check the REPO_URL in this script."
         exit 1
     fi
+    # Set ownership immediately after cloning.
+    sudo chown -R $USER:$USER "$APP_DIR"
 fi
 
 cd "$APP_DIR" || exit
 
 # --- Step 3: Install Project Dependencies ---
 echo "Installing Node.js packages..."
+# Run npm install as the correct user.
 npm install
 
 echo "Building application for production..."
 npm run build
 
 
-# --- Step 4: Create Music and Video Directories ---
+# --- Step 4: Create Media Directories ---
 echo "Creating directories for your media..."
 mkdir -p public/audio
 mkdir -p public/videos
@@ -108,6 +114,7 @@ echo ""
 echo "--- Setup Complete! ---"
 echo ""
 echo "The application is now running and will start automatically on boot."
+echo "If this was a re-run, some services may have been restarted."
 echo ""
 echo "IMPORTANT NEXT STEPS:"
 echo "1. Create the .env file if your app needs it (e.g., for the ESP32 IP address)."
