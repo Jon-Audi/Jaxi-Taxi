@@ -109,23 +109,23 @@ This is the most common and frustrating issue, often caused by a stale cache on 
    ```bash
    cat /home/jon/jaxi-taxi/src/ai/flows/wled-lighting-flow.ts
    ```
-   The very first line of the output **MUST** be `// VERSION: 4 - VERBOSE LOGGING`. If you see an older version number or something different, it means the `setup.sh` script is failing to pull the latest code from GitHub.
+   The very first line of the output **MUST** be `// VERSION: 5 - CORRECT EFFECT MAP & VARIETY PROMPT`. If you see an older version number or something different, it means the `setup.sh` script is failing to pull the latest code from GitHub.
 
 ### Problem: Lights are not responding or are stuck on one pattern.
 1.  **Check Pi Logs (Jaxi Taxi App):**
     *   On your Raspberry Pi, run `sudo journalctl -u jaxi-taxi.service -f`. This command shows the live logs of your application.
     *   When a song starts, you should now see verbose logs like this:
         ```
-        [Flow v4] Entering audioAnalysisLighting function.
+        [Flow v5] Entering audioAnalysisLighting function.
         ...
-        [Flow v4] AI suggested lighting: { primaryColor: '#...', secondaryColor: '#...', ... }
-        [Flow v4 Debug] AI effect name (lowercase): "strobe"
-        [Flow v4 Debug] Final Mapped WLED Effect ID: 106
+        [Flow v5] AI suggested lighting: { primaryColor: '#...', secondaryColor: '#...', ... }
+        [Flow v5 Debug] AI effect name (lowercase): "fireworks"
+        [Flow v5 Debug] Final Mapped WLED Effect ID: 42
         ...
-        [Flow v4] WLED Payload: {"on":true,"bri":...,"seg":[{"fx":106,...}]}
-        [Flow v4] Successfully sent command to WLED.
+        [Flow v5] WLED Payload: {"on":true,"bri":...,"seg":[{"fx":42,...}]}
+        [Flow v5] Successfully sent command to WLED.
         ```
-    *   **If you still see `fx:5` in the payload**, it means you are running old, cached code. See the "My code changes don't seem to be applying" section above.
+    *   **If you see an incorrect `fx` ID**, it means you are running old, cached code. See the "My code changes don't seem to be applying" section above.
     *   **If you see a `FetchError` or `Failed to send command`**, it means the Pi cannot reach the WLED device. Continue to the next step.
 
 2.  **Check WLED Manually:**

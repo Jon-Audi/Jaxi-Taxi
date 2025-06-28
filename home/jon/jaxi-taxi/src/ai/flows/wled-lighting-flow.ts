@@ -1,5 +1,5 @@
 'use server';
-// VERSION: 4 - VERBOSE LOGGING
+// VERSION: 5 - CORRECT EFFECT MAP & VARIETY PROMPT
 
 /**
  * @fileOverview This file defines a Genkit flow for analyzing audio and determining corresponding LED lighting for WLED.
@@ -35,7 +35,7 @@ export type AudioAnalysisLightingOutput = z.infer<typeof AudioAnalysisLightingOu
 export async function audioAnalysisLighting(
   input: AudioAnalysisLightingInput
 ): Promise<AudioAnalysisLightingOutput> {
-  console.log('[Flow v4] Entering audioAnalysisLighting function.');
+  console.log('[Flow v5] Entering audioAnalysisLighting function.');
   return audioAnalysisLightingFlow(input);
 }
 
@@ -45,24 +45,24 @@ const prompt = ai.definePrompt({
   output: {schema: AudioAnalysisLightingOutputSchema},
   prompt: `You are an AI DJ for a music-reactive LED system that controls a 60-LED light strip using WLED.
 Your task is to analyze an audio track and suggest a dynamic, multi-colored lighting configuration that will look great across all 60 LEDs.
+You should be creative and select a wide variety of effects. Avoid using the same effect for multiple songs in a row.
 
 Based on the provided audio, determine the following:
 1.  **Primary Color**: The main hex color that captures the song's primary emotion.
 2.  **Secondary Color**: A second hex color that contrasts or complements the primary.
 3.  **Intensity**: Overall brightness from 0.0 (dim) to 1.0 (bright).
 4.  **Effect**: Choose the *best* effect from the list below. You MUST choose one of these names exactly. Your choice should reflect the song's energy, genre, and mood. Prioritize effects that create movement and interest across the whole strip.
-    *   'Solid': A static, solid color. Use for intros, outros, or very calm songs.
-    *   'BPM': Pulses colors to the beat. Great for pop, rock, and electronic music.
-    *   'Chase Rainbow': Classic running rainbow effect, good for upbeat and fun tracks.
-    *   'Fireworks': Bursts of random colors. Perfect for high-energy moments or celebratory songs.
-    *   'Fire Flicker': Simulates a gentle, warm fire. Good for acoustic, folk, or ambient music.
-    *   'Meteor': A streak of light with a fading trail. Excellent for songs with sweeping sounds or arpeggios.
-    *   'Ripple': Creates a water-like ripple effect. Good for chill-out, lofi, or ambient tracks.
-    *   'Lightning': Flashes of light. Use for dramatic moments or intense electronic music.
-    *   'Rainbow': Smoothly cycles through all colors along the strip. A versatile, classic effect.
-    *   'Dynamic': Shifts LEDs to random colors from the palette. A good general-purpose active effect.
-    *   'Scan': A dot of light moving back and forth. Good for synth-heavy or futuristic-sounding music.
-    *   'Strobe': Classic high-energy flashing effect for dance music or intense drops.
+    *   'Solid': A static, solid color. Best for intros, outros, or very calm, ambient songs.
+    *   'BPM': Pulses colors to the beat. The classic choice for pop, rock, and most electronic music. Use this for clear, driving rhythms.
+    *   'Fireworks': Bursts of random colors. Perfect for high-energy moments, crescendos, or celebratory songs.
+    *   'Meteor': A streak of light with a fading trail. Excellent for songs with sweeping sounds, arpeggios, or a sense of motion.
+    *   'Lightning': Flashes of light. Use this sparingly for dramatic moments, intense breakdowns, or songs with a stormy feel.
+    *   'Rainbow': Smoothly cycles through all colors along the strip. A versatile, classic effect for upbeat and positive tracks.
+    *   'Chase Random': Colors chase each other down the strip, leaving a trail of random colors. Good for playful, energetic, or unpredictable music.
+    *   'Fire Flicker': Simulates a gentle, warm fire. Ideal for acoustic, folk, or intimate, warm-sounding tracks.
+    *   'Ripple': Creates a water-like ripple effect. Best for chill-out, lofi, or ambient tracks that have a liquid or flowing quality.
+    *   'Scan': A dot of light moving back and forth. A great fit for synth-heavy, retro, or futuristic-sounding music.
+    *   'Strobe': Classic high-energy flashing effect. Reserve this for intense dance music or powerful drops.
 5.  **Speed**: A value from 0 (slow) to 255 (fast), based on the song's tempo.
 6.  **Effect Intensity**: A value from 0 (subtle) to 255 (intense), based on the song's energy. A powerful rock anthem should be high, a soft ballad should be low.
 
@@ -78,52 +78,51 @@ const audioAnalysisLightingFlow = ai.defineFlow(
     outputSchema: AudioAnalysisLightingOutputSchema,
   },
   async input => {
-    console.log('[Flow v4] Entered audioAnalysisLightingFlow. Calling AI prompt...');
+    console.log('[Flow v5] Entered audioAnalysisLightingFlow. Calling AI prompt...');
     const {output} = await prompt(input);
-    console.log('[Flow v4] Received output from AI.');
+    console.log('[Flow v5] Received output from AI.');
     
     if (output) {
-      console.log(`[Flow v4] AI suggested lighting:`, output);
+      console.log(`[Flow v5] AI suggested lighting:`, output);
       
       const wledIp = process.env.ESP32_IP_ADDRESS;
       
       if (!wledIp) {
-        console.warn("[Flow v4 Warning] ESP32_IP_ADDRESS is not set. Skipping hardware command.");
+        console.warn("[Flow v5 Warning] ESP32_IP_ADDRESS is not set. Skipping hardware command.");
       } else {
         try {
-          console.log('[Flow v4] Preparing to send command to WLED.');
+          console.log('[Flow v5] Preparing to send command to WLED.');
 
           const hexToRgb = (hex: string): [number, number, number] => {
             const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
             return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : [0, 0, 0];
           };
           
-          console.log('[Flow v4] Defining WLED effect map.');
-          // Corrected map based on user-provided documentation.
+          console.log('[Flow v5] Defining WLED effect map.');
+          // Corrected map based on user-provided WLED documentation.
           const effectMap: { [key: string]: number } = {
-              'solid': 0,
-              'dynamic': 7,
-              'rainbow': 9,
-              'scan': 10,
-              'strobe': 23,
-              'chase rainbow': 30,
-              'fireworks': 42,
-              'fire flicker': 45,
-              'lightning': 57,
-              'bpm': 68,
-              'meteor': 76,
-              'ripple': 79
+            'solid': 0,
+            'bpm': 68,
+            'fireworks': 42,
+            'meteor': 76,
+            'lightning': 57,
+            'rainbow': 9,
+            'chase random': 29,
+            'fire flicker': 45,
+            'ripple': 79,
+            'scan': 10,
+            'strobe': 23,
           };
-          console.log('[Flow v4] Effect map defined:', effectMap);
+          console.log('[Flow v5] Effect map defined:', effectMap);
 
           const effectNameFromAI = (output.effect || 'solid').toLowerCase();
-          console.log(`[Flow v4 Debug] AI effect name (lowercase): "${effectNameFromAI}"`);
+          console.log(`[Flow v5 Debug] AI effect name (lowercase): "${effectNameFromAI}"`);
 
           const effectId = effectMap[effectNameFromAI];
-          console.log(`[Flow v4 Debug] Looked up effect ID: ${effectId}`);
+          console.log(`[Flow v5 Debug] Looked up effect ID: ${effectId}`);
 
           const finalEffectId = effectId === undefined ? 0 : effectId; // Default to Solid
-          console.log(`[Flow v4 Debug] Final Mapped WLED Effect ID: ${finalEffectId}`);
+          console.log(`[Flow v5 Debug] Final Mapped WLED Effect ID: ${finalEffectId}`);
 
           const wledPayload = {
             on: true,
@@ -140,8 +139,8 @@ const audioAnalysisLightingFlow = ai.defineFlow(
             }]
           };
 
-          console.log(`[Flow v4] Sending command to WLED at ${wledIp}...`);
-          console.log(`[Flow v4] WLED Payload:`, JSON.stringify(wledPayload));
+          console.log(`[Flow v5] Sending command to WLED at ${wledIp}...`);
+          console.log(`[Flow v5] WLED Payload:`, JSON.stringify(wledPayload));
 
           const wledUrl = `${wledIp.replace(/\/$/, '')}/json/state`;
           
@@ -153,16 +152,16 @@ const audioAnalysisLightingFlow = ai.defineFlow(
 
           if (!response.ok) {
             const errorText = await response.text();
-            console.error(`[Flow v4 Error] Failed to send command to WLED: ${response.status} ${response.statusText}`, errorText);
+            console.error(`[Flow v5 Error] Failed to send command to WLED: ${response.status} ${response.statusText}`, errorText);
           } else {
-            console.log('[Flow v4] Successfully sent command to WLED.');
+            console.log('[Flow v5] Successfully sent command to WLED.');
           }
         } catch (error) {
-          console.error('[Flow v4 Error] An error occurred while preparing or sending the WLED request.', error);
+          console.error('[Flow v5 Error] An error occurred while preparing or sending the WLED request.', error);
         }
       }
     } else {
-        console.log('[Flow v4] AI did not return an output.');
+        console.log('[Flow v5] AI did not return an output.');
     }
     
     return output!;
