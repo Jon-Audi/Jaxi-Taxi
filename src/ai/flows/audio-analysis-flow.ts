@@ -22,9 +22,10 @@ const AudioAnalysisLightingInputSchema = z.object({
 export type AudioAnalysisLightingInput = z.infer<typeof AudioAnalysisLightingInputSchema>;
 
 const AudioAnalysisLightingOutputSchema = z.object({
-  color: z.string().describe('The suggested color for the LED lighting in hex format (e.g., #FF5733).'),
+  primaryColor: z.string().describe("The primary suggested color for the LED lighting in hex format (e.g., '#FF5733'). This should be the dominant color."),
+  secondaryColor: z.string().describe("A secondary, complementary or contrasting color to use in the effect, in hex format (e.g., '#33FF57')."),
   intensity: z.number().describe('The suggested overall brightness for the LED lighting (0.0 to 1.0).'),
-  effect: z.string().describe('The suggested lighting effect (e.g., "pulse", "strobe", "fade", or "static").'),
+  effect: z.string().describe('The suggested WLED lighting effect. Choose one from the provided list that best matches the song\'s rhythm and energy (e.g., "BPM", "Chase", "Fireworks", "Lightning", "Solid").'),
   speed: z.number().min(0).max(255).describe('The speed of the lighting effect, from 0 (slowest) to 255 (fastest). Base this on the song\'s tempo.'),
   effectIntensity: z.number().min(0).max(255).describe('The intensity of the lighting effect itself, from 0 (subtle) to 255 (intense). Base this on the song\'s dynamic range or energy.'),
 });
@@ -40,17 +41,23 @@ const prompt = ai.definePrompt({
   name: 'audioAnalysisLightingPrompt',
   input: {schema: AudioAnalysisLightingInputSchema},
   output: {schema: AudioAnalysisLightingOutputSchema},
-  prompt: `You are an AI assistant for a music-reactive LED system called Jaxi Taxi.
-Your task is to analyze the mood, tempo, and energy of an audio track and suggest a synchronized lighting configuration for a device running WLED.
+  prompt: `You are an AI DJ for a music-reactive LED system called Jaxi Taxi that controls WLED.
+Your task is to analyze an audio track and suggest a dynamic, multi-colored lighting configuration.
 
-Based on the provided audio data, determine the most fitting:
-1.  **Color**: A single hex color code (e.g., '#FF00FF') that captures the song's primary emotion.
-2.  **Intensity**: A value from 0.0 (dim) to 1.0 (bright) representing the song's overall brightness.
-3.  **Effect**: One of the following lighting patterns: 'pulse', 'fade', 'strobe', or 'static'. Choose the effect that best matches the song's rhythm and tempo.
-4.  **Speed**: A value from 0 (very slow) to 255 (very fast) for the chosen effect. A fast tempo song should have a high speed, and a slow ballad should have a low speed.
-5.  **Effect Intensity**: A value from 0 (subtle) to 255 (very intense) for the effect. A high-energy song (e.g., rock anthem) should have a high intensity, while a calm ambient track should have a lower intensity.
+Based on the provided audio, determine the following:
+1.  **Primary Color**: The main hex color that captures the song's primary emotion.
+2.  **Secondary Color**: A second hex color that contrasts or complements the primary, to be used in the effect.
+3.  **Intensity**: Overall brightness from 0.0 (dim) to 1.0 (bright).
+4.  **Effect**: Choose the *best* effect from this specific list:
+    *   'Solid': A static, solid color. Use for intros, outros, or very calm songs.
+    *   'BPM': Pulses colors to the beat. Great for pop, rock, and electronic music.
+    *   'Chase': Colors chase each other down the strip. Good for energetic, driving rhythms.
+    *   'Fireworks': Bursts of random colors. Perfect for high-energy moments or celebratory songs.
+    *   'Lightning': Flashes of light. Use for dramatic moments or intense electronic music.
+5.  **Speed**: A value from 0 (slow) to 255 (fast), based on the song's tempo.
+6.  **Effect Intensity**: A value from 0 (subtle) to 255 (intense), based on the song's energy. A powerful rock anthem should be high, a soft ballad should be low.
 
-Consider the following current settings when making your determination, but prioritize the audio's characteristics: {{{currentSettings}}}
+Prioritize creating a dynamic, interesting two-color effect.
 
 Here is the audio data: {{media url=audioDataUri}}`,
 });
@@ -81,24 +88,30 @@ const audioAnalysisLightingFlow = ai.defineFlow(
             return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : [255, 255, 255];
           };
 
-          // 2. Map AI effect names to WLED effect IDs
+          // 2. Map our descriptive AI effect names to WLED's numeric effect IDs
           const effectMap: { [key: string]: number } = {
-            'static': 0,
-            'strobe': 5,
-            'fade': 4,
-            'pulse': 8, // Mapping 'pulse' to WLED's 'BPM' effect
+            'solid': 0, // WLED 'Solid'
+            'bpm': 8,     // WLED 'BPM'
+            'chase': 45,  // WLED 'Rainbow Chase' or 'Chase 2'
+            'fireworks': 74, // WLED 'Fireworks'
+            'lightning': 66 // WLED 'Lightning'
           };
-          const effectId = effectMap[output.effect.toLowerCase()] || 0; // Default to 'Static'
+          const effectId = effectMap[output.effect.toLowerCase()] || 0; // Default to 'Solid'
 
-          // 3. Construct the WLED JSON payload
+          // 3. Construct the WLED JSON payload.
+          // We are now sending a primary and secondary color to make the effects dynamic.
           const wledPayload = {
             on: true,
             bri: Math.round(output.intensity * 255), // Convert intensity (0-1.0) to brightness (0-255)
             seg: [{
-              col: [hexToRgb(output.color)],
               fx: effectId,
               sx: output.speed,
-              ix: output.effectIntensity
+              ix: output.effectIntensity,
+              col: [
+                hexToRgb(output.primaryColor), 
+                hexToRgb(output.secondaryColor),
+                [0,0,0] // The 3rd color is often black or unused, but good to define.
+              ]
             }]
           };
 
@@ -128,6 +141,15 @@ const audioAnalysisLightingFlow = ai.defineFlow(
       }
     }
     
+    // We need to transform the AI output to fit the simpler LightingConfig for the UI visualizer
+    if (output) {
+        return {
+            ...output,
+            color: output.primaryColor, // The visualizer only shows one color, so we'll use the primary.
+            effect: output.effect.toLowerCase() as any // Ensure effect name is lowercase for CSS class
+        };
+    }
+
     return output!;
   }
 );
