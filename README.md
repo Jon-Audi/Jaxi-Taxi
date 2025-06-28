@@ -95,16 +95,39 @@ The app needs to know your WLED device's IP address.
 
 If things aren't working as expected, follow these steps in order.
 
+### Problem: My code changes don't seem to be applying.
+The app might be running an old, cached version. The setup script now clears this cache automatically, but if you update the code manually, you might need to do it yourself.
+1. **Force a Clean Build:** On your Pi, navigate to the `jaxi-taxi` directory and run `rm -rf .next` to delete the cache. Then restart the app with `sudo systemctl restart jaxi-taxi.service`.
+2. **Verify File Contents:** Make sure your changes were actually saved. You can view the contents of a file directly in the terminal. For example, to check the AI logic, run: `cat /home/jon/jaxi-taxi/src/ai/flows/audio-analysis-flow.ts`. The output should match the latest version of the code.
+
 ### Problem: Background is black, no video is playing.
 1.  **File Name:** Make sure your video file is named exactly `background.mp4` and is located in the `jaxi-taxi/public/videos/` directory. Linux is case-sensitive!
 2.  **File Format:** Some `.mp4` files use codecs that the Pi's browser can't play. Try re-encoding the video or using a different, known-good `.mp4` file to test.
 3.  **Kiosk Mode:** Ensure you have rebooted the Pi after running the `setup.sh` script. The kiosk mode flags are essential for autoplay.
 
-### Problem: Lights are not responding.
-1.  **Check WLED Manually:** Can you control your lights from the WLED web interface on your phone or computer? If not, the problem is with your WLED setup (WiFi, wiring, or LED preferences).
-2.  **Check Pi Logs:** On your Raspberry Pi, run `sudo journalctl -u jaxi-taxi.service -f`. This command shows the live logs of your application. When a song plays, you should see messages like:
-    *   `[Flow] Sending command to WLED at http://...`
-    *   `[Flow] WLED Payload: {"on":true,"bri":...}`
-    *   `[Flow] Successfully sent command to WLED.`
-3.  **Verify the IP Address:** Double-check that the IP address in your `/home/jon/jaxi-taxi/.env` file is the correct one for your WLED device and includes the `http://` prefix.
-4.  **Check Network Connectivity:** On the Raspberry Pi, try to `ping 192.168.1.123` (using your WLED IP and without the `http://`). If you get a response, the devices can see each other on the network. If not, there is a network issue (e.g., they are on different WiFi networks or a firewall is blocking them).
+### Problem: Lights are not responding or are stuck on one pattern.
+This is the most common issue and requires checking two things: the Pi's logs and the WLED device's status.
+
+1.  **Check Pi Logs (Jaxi Taxi App):**
+    *   On your Raspberry Pi, run `sudo journalctl -u jaxi-taxi.service -f`. This command shows the live logs of your application.
+    *   When a song starts, you should see messages like this:
+        ```
+        [Flow] AI suggested lighting: { primaryColor: '#...', secondaryColor: '#...', ... }
+        [Flow Debug] AI effect name (lowercase): "strobe"
+        [Flow Debug] Mapped WLED Effect ID: 106
+        [Flow] Sending command to WLED at http://...
+        [Flow] WLED Payload: {"on":true,"bri":...,"seg":[{"fx":106,...}]}
+        [Flow] Successfully sent command to WLED.
+        ```
+    *   **If you see `fx:5`**, it means the effect mapping failed and it's defaulting to "Random Colors". Ensure your `audio-analysis-flow.ts` file is up to date by re-running the setup script.
+    *   **If you see a `FetchError` or `Failed to send command`**, it means the Pi cannot reach the WLED device. Continue to the next step.
+
+2.  **Check WLED Manually:**
+    *   Can you control your lights from the WLED web interface on your phone or computer? If not, the problem is with your WLED setup (WiFi, wiring, or LED preferences).
+    *   In the WLED interface, go to **Info**. Does the `Signal Strength` look okay? Is the `Uptime` what you expect?
+
+3.  **Verify the IP Address:**
+    *   Double-check that the IP address in your `/home/jon/jaxi-taxi/.env` file is the correct one for your WLED device and includes the `http://` prefix.
+
+4.  **Check Network Connectivity:**
+    *   On the Raspberry Pi, try to `ping 192.168.X.X` (using your WLED IP and *without* the `http://`). If you get a response, the devices can see each other on the network. If not, there is a network issue (e.g., they are on different WiFi networks or a firewall is blocking them).

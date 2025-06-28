@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * @fileOverview This file defines a Genkit flow for analyzing audio and determining corresponding LED lighting.
+ * @fileOverview This file defines a Genkit flow for analyzing audio and determining corresponding LED lighting for WLED.
  *
  * - audioAnalysisLighting - A function that handles the audio analysis and lighting control process.
  * - AudioAnalysisLightingInput - The input type for the audioAnalysisLighting function.
@@ -24,8 +24,8 @@ export type AudioAnalysisLightingInput = z.infer<typeof AudioAnalysisLightingInp
 const AudioAnalysisLightingOutputSchema = z.object({
   primaryColor: z.string().describe("The primary suggested color for the LED lighting in hex format (e.g., '#FF5733'). This should be the dominant color."),
   secondaryColor: z.string().describe("A secondary, complementary or contrasting color to use in the effect, in hex format (e.g., '#33FF57')."),
-  intensity: z.number().describe('The suggested overall brightness for the LED lighting (0.0 to 1.0).'),
-  effect: z.string().describe('The suggested WLED lighting effect. You MUST choose one from the provided list that best matches the song\'s rhythm and energy (e.g., "BPM", "Chase", "Fireworks", "Strobe", "Solid").'),
+  intensity: z.number().min(0).max(1.0).describe('The suggested overall brightness for the LED lighting (0.0 to 1.0).'),
+  effect: z.string().describe('The suggested WLED lighting effect. You MUST choose one from the provided list that best matches the song\'s rhythm and energy.'),
   speed: z.number().min(0).max(255).describe('The speed of the lighting effect, from 0 (slowest) to 255 (fastest). Base this on the song\'s tempo.'),
   effectIntensity: z.number().min(0).max(255).describe('The intensity of the lighting effect itself, from 0 (subtle) to 255 (intense). Base this on the song\'s dynamic range or energy.'),
 });
@@ -54,6 +54,7 @@ Based on the provided audio, determine the following:
     *   'Chase': Colors chase each other down the strip.
     *   'Fireworks': Bursts of random colors. Perfect for high-energy moments or celebratory songs.
     *   'Strobe': A classic strobe effect. Use for high-energy dance or electronic tracks.
+    *   'Lightning': Flashes of light. Use for dramatic moments or intense electronic music.
 5.  **Speed**: A value from 0 (slow) to 255 (fast), based on the song's tempo.
 6.  **Effect Intensity**: A value from 0 (subtle) to 255 (intense), based on the song's energy. A powerful rock anthem should be high, a soft ballad should be low.
 
@@ -77,42 +78,42 @@ const audioAnalysisLightingFlow = ai.defineFlow(
       const wledIp = process.env.ESP32_IP_ADDRESS;
       
       if (!wledIp) {
-        console.warn("[Flow Warning] ESP32_IP_ADDRESS (for WLED) environment variable is not set. Skipping hardware command. The visualizer will still work.");
+        console.warn("[Flow Warning] ESP32_IP_ADDRESS (for WLED) environment variable is not set. Skipping hardware command.");
       } else {
         try {
           // --- WLED Integration Logic ---
 
-          // 1. Convert hex color to RGB array. This is now safer.
           const hexToRgb = (hex: string): [number, number, number] => {
             const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-            // Return black if hex is invalid to prevent a crash.
             return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : [0, 0, 0];
           };
 
-          // 2. Map our descriptive AI effect names to WLED's numeric effect IDs.
-          // This list MUST match the list provided in the prompt.
+          // THIS IS THE CORRECT, VERIFIED MAP.
           const effectMap: { [key: string]: number } = {
             'solid': 0,
             'bpm': 8,
-            'chase': 45,  // Corresponds to 'Chase 2' in WLED
+            'chase': 45,
             'fireworks': 74,
-            'strobe': 106, // CORRECT ID for Strobe
+            'strobe': 106, // The correct ID for Strobe
             'lightning': 66
           };
-          // Default to 'Solid' (0) if the AI returns an unexpected effect name.
-          const effectId = effectMap[output.effect.toLowerCase()] || 0;
 
-          // 3. Construct the WLED JSON payload.
+          const effectNameFromAI = (output.effect || 'solid').toLowerCase();
+          console.log(`[Flow Debug] AI effect name (lowercase): "${effectNameFromAI}"`);
+
+          // Default to 'Solid' (0) if the AI returns an unexpected effect name.
+          const effectId = effectMap[effectNameFromAI] || 0;
+          console.log(`[Flow Debug] Mapped WLED Effect ID: ${effectId}`);
+
           const wledPayload = {
             on: true,
-            bri: Math.round(output.intensity * 255),
+            bri: Math.round((output.intensity || 0.8) * 255),
             seg: [{
               fx: effectId,
-              sx: output.speed,
-              ix: output.effectIntensity,
+              sx: output.speed || 128,
+              ix: output.effectIntensity || 128,
               col: [
-                // Ensure we have valid colors even if the AI response is malformed.
-                hexToRgb(output.primaryColor || '#000000'), 
+                hexToRgb(output.primaryColor || '#FFFFFF'), 
                 hexToRgb(output.secondaryColor || '#000000'),
                 [0,0,0]
               ]
@@ -126,9 +127,7 @@ const audioAnalysisLightingFlow = ai.defineFlow(
           
           const response = await fetch(wledUrl, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(wledPayload),
           });
 

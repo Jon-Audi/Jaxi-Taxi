@@ -61,6 +61,9 @@ echo "Installing Node.js packages..."
 # Run npm install as the correct user.
 npm install
 
+echo "Clearing application cache to ensure fresh build..."
+rm -rf .next
+
 echo "Building application for production..."
 npm run build
 
