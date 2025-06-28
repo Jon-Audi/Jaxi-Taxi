@@ -96,7 +96,7 @@ const audioAnalysisLightingFlow = ai.defineFlow(
             'bpm': 8,
             'chase': 45,  // Corresponds to 'Chase 2' in WLED
             'fireworks': 74,
-            'strobe': 106,
+            'strobe': 106, // CORRECT ID for Strobe
             'lightning': 66
           };
           // Default to 'Solid' (0) if the AI returns an unexpected effect name.
