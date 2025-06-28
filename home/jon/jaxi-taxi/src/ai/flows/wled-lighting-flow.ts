@@ -43,14 +43,14 @@ const prompt = ai.definePrompt({
   name: 'audioAnalysisLightingPrompt',
   input: {schema: AudioAnalysisLightingInputSchema},
   output: {schema: AudioAnalysisLightingOutputSchema},
-  prompt: `You are an AI DJ for a music-reactive LED system that controls a 1D WLED light strip.
-Your task is to analyze an audio track and suggest a dynamic, multi-colored lighting configuration.
+  prompt: `You are an AI DJ for a music-reactive LED system that controls a 60-LED light strip using WLED.
+Your task is to analyze an audio track and suggest a dynamic, multi-colored lighting configuration that will look great across all 60 LEDs.
 
 Based on the provided audio, determine the following:
 1.  **Primary Color**: The main hex color that captures the song's primary emotion.
 2.  **Secondary Color**: A second hex color that contrasts or complements the primary.
 3.  **Intensity**: Overall brightness from 0.0 (dim) to 1.0 (bright).
-4.  **Effect**: Choose the *best* effect from the list below. You MUST choose one of these names exactly. Your choice should reflect the song's energy, genre, and mood.
+4.  **Effect**: Choose the *best* effect from the list below. You MUST choose one of these names exactly. Your choice should reflect the song's energy, genre, and mood. Prioritize effects that create movement and interest across the whole strip.
     *   'Solid': A static, solid color. Use for intros, outros, or very calm songs.
     *   'BPM': Pulses colors to the beat. Great for pop, rock, and electronic music.
     *   'Chase Rainbow': Classic running rainbow effect, good for upbeat and fun tracks.
