@@ -23,8 +23,10 @@ export type AudioAnalysisLightingInput = z.infer<typeof AudioAnalysisLightingInp
 
 const AudioAnalysisLightingOutputSchema = z.object({
   color: z.string().describe('The suggested color for the LED lighting in hex format (e.g., #FF5733).'),
-  intensity: z.number().describe('The suggested intensity for the LED lighting (0.0 to 1.0).'),
+  intensity: z.number().describe('The suggested overall brightness for the LED lighting (0.0 to 1.0).'),
   effect: z.string().describe('The suggested lighting effect (e.g., "pulse", "strobe", "fade", or "static").'),
+  speed: z.number().min(0).max(255).describe('The speed of the lighting effect, from 0 (slowest) to 255 (fastest). Base this on the song\'s tempo.'),
+  effectIntensity: z.number().min(0).max(255).describe('The intensity of the lighting effect itself, from 0 (subtle) to 255 (intense). Base this on the song\'s dynamic range or energy.'),
 });
 export type AudioAnalysisLightingOutput = z.infer<typeof AudioAnalysisLightingOutputSchema>;
 
@@ -43,8 +45,10 @@ Your task is to analyze the mood, tempo, and energy of an audio track and sugges
 
 Based on the provided audio data, determine the most fitting:
 1.  **Color**: A single hex color code (e.g., '#FF00FF') that captures the song's primary emotion.
-2.  **Intensity**: A value from 0.0 (dim) to 1.0 (bright) representing the song's energy level.
+2.  **Intensity**: A value from 0.0 (dim) to 1.0 (bright) representing the song's overall brightness.
 3.  **Effect**: One of the following lighting patterns: 'pulse', 'fade', 'strobe', or 'static'. Choose the effect that best matches the song's rhythm and tempo.
+4.  **Speed**: A value from 0 (very slow) to 255 (very fast) for the chosen effect. A fast tempo song should have a high speed, and a slow ballad should have a low speed.
+5.  **Effect Intensity**: A value from 0 (subtle) to 255 (very intense) for the effect. A high-energy song (e.g., rock anthem) should have a high intensity, while a calm ambient track should have a lower intensity.
 
 Consider the following current settings when making your determination, but prioritize the audio's characteristics: {{{currentSettings}}}
 
@@ -92,7 +96,9 @@ const audioAnalysisLightingFlow = ai.defineFlow(
             bri: Math.round(output.intensity * 255), // Convert intensity (0-1.0) to brightness (0-255)
             seg: [{
               col: [hexToRgb(output.color)],
-              fx: effectId
+              fx: effectId,
+              sx: output.speed,
+              ix: output.effectIntensity
             }]
           };
 
