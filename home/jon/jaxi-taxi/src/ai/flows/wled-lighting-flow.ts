@@ -1,4 +1,5 @@
 'use server';
+// VERSION: 4 - VERBOSE LOGGING
 
 /**
  * @fileOverview This file defines a Genkit flow for analyzing audio and determining corresponding LED lighting for WLED.
@@ -34,6 +35,7 @@ export type AudioAnalysisLightingOutput = z.infer<typeof AudioAnalysisLightingOu
 export async function audioAnalysisLighting(
   input: AudioAnalysisLightingInput
 ): Promise<AudioAnalysisLightingOutput> {
+  console.log('[Flow v4] Entering audioAnalysisLighting function.');
   return audioAnalysisLightingFlow(input);
 }
 
@@ -70,24 +72,27 @@ const audioAnalysisLightingFlow = ai.defineFlow(
     outputSchema: AudioAnalysisLightingOutputSchema,
   },
   async input => {
+    console.log('[Flow v4] Entered audioAnalysisLightingFlow. Calling AI prompt...');
     const {output} = await prompt(input);
+    console.log('[Flow v4] Received output from AI.');
     
     if (output) {
-      console.log(`[Flow] AI suggested lighting:`, output);
+      console.log(`[Flow v4] AI suggested lighting:`, output);
       
       const wledIp = process.env.ESP32_IP_ADDRESS;
       
       if (!wledIp) {
-        console.warn("[Flow Warning] ESP32_IP_ADDRESS (for WLED) environment variable is not set. Skipping hardware command.");
+        console.warn("[Flow v4 Warning] ESP32_IP_ADDRESS is not set. Skipping hardware command.");
       } else {
         try {
-          // --- WLED Integration Logic ---
+          console.log('[Flow v4] Preparing to send command to WLED.');
 
           const hexToRgb = (hex: string): [number, number, number] => {
             const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
             return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : [0, 0, 0];
           };
-
+          
+          console.log('[Flow v4] Defining WLED effect map.');
           // THIS IS THE CORRECT, VERIFIED MAP.
           const effectMap: { [key: string]: number } = {
             'solid': 0,
@@ -97,19 +102,22 @@ const audioAnalysisLightingFlow = ai.defineFlow(
             'strobe': 106,
             'lightning': 66
           };
+          console.log('[Flow v4] Effect map defined:', effectMap);
 
           const effectNameFromAI = (output.effect || 'solid').toLowerCase();
-          console.log(`[Flow Debug] AI effect name (lowercase): "${effectNameFromAI}"`);
+          console.log(`[Flow v4 Debug] AI effect name (lowercase): "${effectNameFromAI}"`);
 
-          // Default to 'Solid' (0) if the AI returns an unexpected effect name.
-          const effectId = effectMap[effectNameFromAI] || 0;
-          console.log(`[Flow Debug] Mapped WLED Effect ID: ${effectId}`);
+          const effectId = effectMap[effectNameFromAI];
+          console.log(`[Flow v4 Debug] Looked up effect ID: ${effectId}`);
+
+          const finalEffectId = effectId === undefined ? 0 : effectId;
+          console.log(`[Flow v4 Debug] Final Mapped WLED Effect ID: ${finalEffectId}`);
 
           const wledPayload = {
             on: true,
             bri: Math.round((output.intensity || 0.8) * 255),
             seg: [{
-              fx: effectId,
+              fx: finalEffectId,
               sx: output.speed || 128,
               ix: output.effectIntensity || 128,
               col: [
@@ -120,8 +128,8 @@ const audioAnalysisLightingFlow = ai.defineFlow(
             }]
           };
 
-          console.log(`[Flow] Sending command to WLED at ${wledIp}...`);
-          console.log(`[Flow] WLED Payload:`, JSON.stringify(wledPayload));
+          console.log(`[Flow v4] Sending command to WLED at ${wledIp}...`);
+          console.log(`[Flow v4] WLED Payload:`, JSON.stringify(wledPayload));
 
           const wledUrl = `${wledIp.replace(/\/$/, '')}/json/state`;
           
@@ -133,14 +141,16 @@ const audioAnalysisLightingFlow = ai.defineFlow(
 
           if (!response.ok) {
             const errorText = await response.text();
-            console.error(`[Flow Error] Failed to send command to WLED: ${response.status} ${response.statusText}`, errorText);
+            console.error(`[Flow v4 Error] Failed to send command to WLED: ${response.status} ${response.statusText}`, errorText);
           } else {
-            console.log('[Flow] Successfully sent command to WLED.');
+            console.log('[Flow v4] Successfully sent command to WLED.');
           }
         } catch (error) {
-          console.error('[Flow Error] An error occurred while preparing or sending the WLED request.', error);
+          console.error('[Flow v4 Error] An error occurred while preparing or sending the WLED request.', error);
         }
       }
+    } else {
+        console.log('[Flow v4] AI did not return an output.');
     }
     
     return output!;

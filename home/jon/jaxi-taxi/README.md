@@ -99,37 +99,33 @@ The app needs to know your WLED device's IP address.
 If things aren't working as expected, follow these steps in order.
 
 ### Problem: My code changes don't seem to be applying.
-This is the most common and frustrating issue, often caused by a stale cache.
-1. **Re-run the Setup Script:** The easiest way to fix this is to run the setup script again. It is now designed to aggressively clear all caches and ensure the latest code is built and run.
+This is the most common and frustrating issue, often caused by a stale cache on the Raspberry Pi. The update script is designed to prevent this, but if it happens, here is how you can definitively check what's going on.
+
+1. **Re-run the Setup Script:** The easiest first step is always to run the setup script again. It is designed to aggressively clear all caches.
    ```bash
    bash <(curl -s https://raw.githubusercontent.com/Jon-Audi/Jaxi-Taxi/main/setup.sh)
    ```
-2. **Verify File Contents MANUALLY:** After running the script, you can prove the changes have been applied. On your Pi, run this command to see the contents of the AI logic file:
+2. **Manually Verify the File Contents:** After running the script, you can prove whether the changes were actually applied. On your Pi, run this command to see the *exact contents* of the AI logic file:
    ```bash
    cat /home/jon/jaxi-taxi/src/ai/flows/wled-lighting-flow.ts
    ```
-   The output should show a `effectMap` with `strobe: 106`. If you still see `strobe: 5` or something different, the update failed.
-
-### Problem: Background is black, no video is playing.
-1.  **File Name:** Make sure your video file is named exactly `background.mp4` and is located in the `jaxi-taxi/public/videos/` directory. Linux is case-sensitive!
-2.  **File Format:** Some `.mp4` files use codecs that the Pi's browser can't play. Try re-encoding the video or using a different, known-good `.mp4` file to test.
-3.  **Kiosk Mode:** Ensure you have rebooted the Pi after running the `setup.sh` script. The kiosk mode flags are essential for autoplay.
+   The very first line of the output **MUST** be `// VERSION: 4 - VERBOSE LOGGING`. If you see an older version number or something different, it means the `setup.sh` script is failing to pull the latest code from GitHub.
 
 ### Problem: Lights are not responding or are stuck on one pattern.
-This is the most common issue and requires checking two things: the Pi's logs and the WLED device's status.
-
 1.  **Check Pi Logs (Jaxi Taxi App):**
     *   On your Raspberry Pi, run `sudo journalctl -u jaxi-taxi.service -f`. This command shows the live logs of your application.
-    *   When a song starts, you should see messages like this:
+    *   When a song starts, you should now see verbose logs like this:
         ```
-        [Flow] AI suggested lighting: { primaryColor: '#...', secondaryColor: '#...', ... }
-        [Flow Debug] AI effect name (lowercase): "strobe"
-        [Flow Debug] Mapped WLED Effect ID: 106
-        [Flow] Sending command to WLED at http://...
-        [Flow] WLED Payload: {"on":true,"bri":...,"seg":[{"fx":106,...}]}
-        [Flow] Successfully sent command to WLED.
+        [Flow v4] Entering audioAnalysisLighting function.
+        ...
+        [Flow v4] AI suggested lighting: { primaryColor: '#...', secondaryColor: '#...', ... }
+        [Flow v4 Debug] AI effect name (lowercase): "strobe"
+        [Flow v4 Debug] Final Mapped WLED Effect ID: 106
+        ...
+        [Flow v4] WLED Payload: {"on":true,"bri":...,"seg":[{"fx":106,...}]}
+        [Flow v4] Successfully sent command to WLED.
         ```
-    *   **If you see `fx:5`**, it means the effect mapping failed and it's defaulting to "Random Colors". Ensure your `wled-lighting-flow.ts` file is up to date by following the "My code changes don't seem to be applying" section above.
+    *   **If you still see `fx:5` in the payload**, it means you are running old, cached code. See the "My code changes don't seem to be applying" section above.
     *   **If you see a `FetchError` or `Failed to send command`**, it means the Pi cannot reach the WLED device. Continue to the next step.
 
 2.  **Check WLED Manually:**
@@ -141,3 +137,8 @@ This is the most common issue and requires checking two things: the Pi's logs an
 
 4.  **Check Network Connectivity:**
     *   On the Raspberry Pi, try to `ping 192.168.X.X` (using your WLED IP and *without* the `http://`). If you get a response, the devices can see each other on the network. If not, there is a network issue (e.g., they are on different WiFi networks or a firewall is blocking them).
+
+### Problem: Background is black, no video is playing.
+1.  **File Name:** Make sure your video file is named exactly `background.mp4` and is located in the `jaxi-taxi/public/videos/` directory. Linux is case-sensitive!
+2.  **File Format:** Some `.mp4` files use codecs that the Pi's browser can't play. Try re-encoding the video or using a different, known-good `.mp4` file to test.
+3.  **Kiosk Mode:** Ensure you have rebooted the Pi after running the `setup.sh` script. The kiosk mode flags are essential for autoplay.
