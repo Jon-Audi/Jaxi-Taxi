@@ -20,7 +20,7 @@ For a fresh Raspberry Pi setup, you can use the automated installation script. T
 That's it! The script handles everything except the ESP32 setup below.
 
 ### ✨ Updating the Application
-To update the application to the latest version, you can simply run the same installation command again. The script will automatically fetch the newest code from GitHub, **clear all caches**, and rebuild the app for you. Your local `.env` file will not be affected.
+To update the application to the latest version, you can simply run the same installation command again. The script will automatically fetch the newest code from GitHub, **aggressively clear all caches**, and rebuild the app for you. Your local `.env` file will not be affected.
 
 ---
 
@@ -106,7 +106,7 @@ This is the most common and frustrating issue, often caused by a stale cache.
    ```
 2. **Verify File Contents MANUALLY:** After running the script, you can prove the changes have been applied. On your Pi, run this command to see the contents of the AI logic file:
    ```bash
-   cat /home/jon/jaxi-taxi/src/ai/flows/audio-analysis-flow.ts
+   cat /home/jon/jaxi-taxi/src/ai/flows/wled-lighting-flow.ts
    ```
    The output should show a `effectMap` with `strobe: 106`. If you still see `strobe: 5` or something different, the update failed.
 
@@ -129,7 +129,7 @@ This is the most common issue and requires checking two things: the Pi's logs an
         [Flow] WLED Payload: {"on":true,"bri":...,"seg":[{"fx":106,...}]}
         [Flow] Successfully sent command to WLED.
         ```
-    *   **If you see `fx:5`**, it means the effect mapping failed and it's defaulting to "Random Colors". Ensure your `audio-analysis-flow.ts` file is up to date by following the "My code changes don't seem to be applying" section above.
+    *   **If you see `fx:5`**, it means the effect mapping failed and it's defaulting to "Random Colors". Ensure your `wled-lighting-flow.ts` file is up to date by following the "My code changes don't seem to be applying" section above.
     *   **If you see a `FetchError` or `Failed to send command`**, it means the Pi cannot reach the WLED device. Continue to the next step.
 
 2.  **Check WLED Manually:**
