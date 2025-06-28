@@ -7,8 +7,8 @@ import { AudioPlayer } from '@/components/audio-player';
 import { LightingVisualizer } from '@/components/lighting-visualizer';
 import { SettingsPanel } from '@/components/settings-panel';
 import { useToast } from '@/hooks/use-toast';
-import { Skeleton } from './ui/skeleton';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Music4 } from 'lucide-react';
 
 interface LuminaudioDashboardProps {
