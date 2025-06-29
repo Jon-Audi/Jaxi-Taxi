@@ -4,10 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import type { Song, LightingConfig, Settings, LightingEffect } from '@/types';
 import { audioAnalysisLighting } from '@/ai/flows/audio-analysis-flow';
 import { AudioPlayer } from '@/components/audio-player';
-import { LightingVisualizer } from '@/components/lighting-visualizer';
 import { SettingsPanel } from '@/components/settings-panel';
 import { useToast } from '@/hooks/use-toast';
-import { Skeleton } from './ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Music4 } from 'lucide-react';
 
@@ -124,7 +122,7 @@ export function LuminaudioDashboard({ playlist }: LuminaudioDashboardProps) {
       </header>
 
       <div
-        className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto transition-transform duration-300"
+        className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-4xl mx-auto transition-transform duration-300"
         style={{ transform: `scale(${settings.uiScale})` }}
       >
         <div className="lg:col-span-1">
@@ -136,17 +134,6 @@ export function LuminaudioDashboard({ playlist }: LuminaudioDashboardProps) {
             onPrev={handlePrevSong}
             onEnded={handleNextSong}
           />
-        </div>
-        <div className="lg:col-span-1 flex items-center justify-center">
-        {isAiAnalyzing ? (
-            <div className="w-full h-64 md:h-80 lg:h-full flex flex-col items-center justify-center gap-4 bg-card rounded-lg p-4">
-                <Skeleton className="h-3/4 w-3/4 rounded-full" />
-                <Skeleton className="h-4 w-1/2" />
-                <p className="text-muted-foreground animate-pulse">AI is analyzing audio...</p>
-            </div>
-        ) : (
-            <LightingVisualizer config={lightingConfig} />
-        )}
         </div>
         <div className="lg:col-span-1">
           <SettingsPanel settings={settings} onSettingsChange={setSettings} />
