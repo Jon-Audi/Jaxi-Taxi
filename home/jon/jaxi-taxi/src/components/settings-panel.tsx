@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { Settings, LightingEffect } from '@/types';
-import { Slider } from './ui/slider';
+import { Slider } from '@/components/ui/slider';
 
 interface SettingsPanelProps {
   settings: Settings;
@@ -46,9 +46,16 @@ export const SettingsPanel: FC<SettingsPanelProps> = ({ settings, onSettingsChan
               <SelectValue placeholder="Select an effect" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="static">Static</SelectItem>
-              <SelectItem value="fade">Fade</SelectItem>
-              <SelectItem value="pulse">Pulse</SelectItem>
+              <SelectItem value="solid">Solid</SelectItem>
+              <SelectItem value="bpm">BPM</SelectItem>
+              <SelectItem value="fireworks">Fireworks</SelectItem>
+              <SelectItem value="meteor">Meteor</SelectItem>
+              <SelectItem value="lightning">Lightning</SelectItem>
+              <SelectItem value="rainbow">Rainbow</SelectItem>
+              <SelectItem value="chase random">Chase Random</SelectItem>
+              <SelectItem value="fire flicker">Fire Flicker</SelectItem>
+              <SelectItem value="ripple">Ripple</SelectItem>
+              <SelectItem value="scan">Scan</SelectItem>
               <SelectItem value="strobe">Strobe</SelectItem>
             </SelectContent>
           </Select>
