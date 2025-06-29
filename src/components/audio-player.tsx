@@ -96,7 +96,7 @@ export const AudioPlayer: FC<AudioPlayerProps> = ({ song, volume, onVolumeChange
   }
 
   return (
-    <Card className="border-white/20 bg-card/80 backdrop-blur-lg">
+    <Card className="bg-transparent border-none shadow-none">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
             <Music className="text-accent" />
