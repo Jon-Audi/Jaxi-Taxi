@@ -106,7 +106,6 @@ export const AudioPlayer: FC<AudioPlayerProps> = ({ song, volume, onVolumeChange
       <CardContent className="flex flex-col gap-4">
         <div>
             <p className="text-lg font-semibold truncate">{song.title}</p>
-            <p className="text-sm text-muted-foreground">{song.artist}</p>
         </div>
 
         <audio ref={audioRef} src={song.src} preload="auto" />
