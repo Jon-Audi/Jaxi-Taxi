@@ -7,7 +7,9 @@ import { AudioPlayer } from '@/components/audio-player';
 import { SettingsPanel } from '@/components/settings-panel';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Music4 } from 'lucide-react';
+import { Music4, Settings as SettingsIcon } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
 
 interface LuminaudioDashboardProps {
   playlist: Song[];
@@ -45,9 +47,8 @@ export function LuminaudioDashboard({ playlist }: LuminaudioDashboardProps) {
           currentSettings: JSON.stringify({ defaultEffect: settings.defaultEffect }),
         });
         
-        // The flow returns the full analysis. We map it to the LightingConfig for the UI.
         setLightingConfig({
-          color: result.primaryColor, // Use the primary color for the visualizer
+          color: result.primaryColor,
           intensity: result.intensity,
           effect: result.effect.toLowerCase() as LightingEffect,
         });
@@ -115,29 +116,37 @@ export function LuminaudioDashboard({ playlist }: LuminaudioDashboardProps) {
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-      <header className="text-center mb-8">
+      <header className="relative text-center mb-8">
         <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl font-headline">
           Jaxi Taxi
         </h1>
+        <div className="absolute top-0 right-0">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <SettingsIcon className="w-6 h-6 text-white/80 hover:text-white" />
+                <span className="sr-only">Settings</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 border-white/20 bg-card/80 backdrop-blur-lg mr-4">
+              <SettingsPanel settings={settings} onSettingsChange={setSettings} />
+            </PopoverContent>
+          </Popover>
+        </div>
       </header>
 
       <div
-        className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-4xl mx-auto transition-transform duration-300"
+        className="max-w-xl mx-auto transition-transform duration-300"
         style={{ transform: `scale(${settings.uiScale})` }}
       >
-        <div className="lg:col-span-1">
-          <AudioPlayer
-            song={currentSong}
-            volume={settings.volume}
-            onVolumeChange={(v) => setSettings(s => ({...s, volume: v}))}
-            onNext={handleNextSong}
-            onPrev={handlePrevSong}
-            onEnded={handleNextSong}
-          />
-        </div>
-        <div className="lg:col-span-1">
-          <SettingsPanel settings={settings} onSettingsChange={setSettings} />
-        </div>
+        <AudioPlayer
+          song={currentSong}
+          volume={settings.volume}
+          onVolumeChange={(v) => setSettings(s => ({...s, volume: v}))}
+          onNext={handleNextSong}
+          onPrev={handlePrevSong}
+          onEnded={handleNextSong}
+        />
       </div>
     </div>
   );

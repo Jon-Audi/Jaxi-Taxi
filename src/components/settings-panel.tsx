@@ -1,13 +1,6 @@
 "use client";
 
 import type { FC } from 'react';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -16,9 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Settings as SettingsIcon } from 'lucide-react';
 import type { Settings, LightingEffect } from '@/types';
-import { Slider } from './ui/slider';
+import { Slider } from '@/components/ui/slider';
 
 interface SettingsPanelProps {
   settings: Settings;
@@ -35,17 +27,15 @@ export const SettingsPanel: FC<SettingsPanelProps> = ({ settings, onSettingsChan
   };
 
   return (
-    <Card className="border-white/20 bg-card/80 backdrop-blur-lg">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <SettingsIcon className="text-accent" />
-          <span>Settings</span>
-        </CardTitle>
-        <CardDescription>
+    <div className="grid gap-y-6">
+      <div className="grid gap-y-1.5">
+        <h3 className="font-semibold leading-none tracking-tight">Settings</h3>
+        <p className="text-sm text-muted-foreground">
           Configure your audio and lighting preferences.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
+        </p>
+      </div>
+
+      <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="default-effect">Default Lighting Effect</Label>
           <Select
@@ -56,13 +46,20 @@ export const SettingsPanel: FC<SettingsPanelProps> = ({ settings, onSettingsChan
               <SelectValue placeholder="Select an effect" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="static">Static</SelectItem>
-              <SelectItem value="fade">Fade</SelectItem>
-              <SelectItem value="pulse">Pulse</SelectItem>
+              <SelectItem value="solid">Solid</SelectItem>
+              <SelectItem value="bpm">BPM</SelectItem>
+              <SelectItem value="fireworks">Fireworks</SelectItem>
+              <SelectItem value="meteor">Meteor</SelectItem>
+              <SelectItem value="lightning">Lightning</SelectItem>
+              <SelectItem value="rainbow">Rainbow</SelectItem>
+              <SelectItem value="chase random">Chase Random</SelectItem>
+              <SelectItem value="fire flicker">Fire Flicker</SelectItem>
+              <SelectItem value="ripple">Ripple</SelectItem>
+              <SelectItem value="scan">Scan</SelectItem>
               <SelectItem value="strobe">Strobe</SelectItem>
             </SelectContent>
           </Select>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Fallback effect if AI analysis fails.
           </p>
         </div>
@@ -77,7 +74,7 @@ export const SettingsPanel: FC<SettingsPanelProps> = ({ settings, onSettingsChan
             value={[settings.uiScale]}
             onValueChange={handleScaleChange}
           />
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Adjust the size of the dashboard components.
           </p>
         </div>
@@ -90,7 +87,7 @@ export const SettingsPanel: FC<SettingsPanelProps> = ({ settings, onSettingsChan
                 </p>
             </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
